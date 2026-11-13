@@ -1,0 +1,42 @@
+   Compiling labeeb-browser v0.1.0 (/workspace/scratch/13230bd84aa2/nawafidh-browser/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.98s
+     Running unittests src/lib.rs (src-tauri/target/debug/build/labeeb-browser/bb6e531f7590a8e5/out/labeeb_core-bb6e531f7590a8e5)
+
+running 13 tests
+test automation::tests::real_sidecar_lifecycle ... ignored, requires an explicitly supplied verified Obscura render release
+test automation::tests::validates_actions_fail_closed ... ok
+test policy::tests::approval_single_use ... ok
+test policy::tests::approval_stale_denied ... ok
+test policy::tests::filename_safe ... ok
+test policy::tests::public_ranges ... ok
+test policy::tests::private_ranges ... ok
+test policy::tests::unsafe_urls_rejected ... ok
+test policy::tests::expired ... ok
+test policy::tests::search_and_address ... ok
+test store::tests::duplicate ... ok
+test automation::tests::refuses_checksum_mismatch_before_launch ... ok
+test store::tests::persistence ... ok
+
+test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests labeeb_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.002s
+
+OK
+EXIT_CODE=0
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.26s
+     Running unittests src/lib.rs (nawafidh-browser/src-tauri/target/debug/build/labeeb-browser/bb6e531f7590a8e5/out/labeeb_core-bb6e531f7590a8e5)
+
+running 1 test
+test automation::tests::real_sidecar_lifecycle ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 1.68s
+
+LIVE_EXIT_CODE=0

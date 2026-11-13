@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-automation-input"
+description = "Enables the automation_input command without any pre-configured scope."
+commands.allow = ["automation_input"]
+
+[[permission]]
+identifier = "deny-automation-input"
+description = "Denies the automation_input command without any pre-configured scope."
+commands.deny = ["automation_input"]

@@ -1,0 +1,22 @@
+{
+  "host": {
+    "sha256": "4203f8cf7c40be083e3a7853e80f2bcb2433abe97b3c6c6729eeead9063631dd",
+    "size": 17589760,
+    "verifiedAgainstBuild": "exact match except documented 3-byte Tauri bundle-type marker UNK -> NSS"
+  },
+  "loader": {
+    "sha256": "86545b66cdb0603bc26b626fb9ad610cb6e71f28d468f5ea66df23b03dda96d5",
+    "size": 160880,
+    "extractedMatchesBuild": true
+  },
+  "sidecar": {
+    "sha256": "20922afebb337a35a82311eb0620160699f19793c31521cb112df3f693ec69c2",
+    "size": 78891520,
+    "extractedMatchesBuild": true
+  },
+  "installer": {
+    "sha256": "694a79cc3d68b3275ab2f8e2017efc49f00adfe17862a7f82ba3d83e3c33d85e",
+    "signed": false,
+    "installedOrLaunched": false
+  }
+}

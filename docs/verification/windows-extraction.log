@@ -1,0 +1,24 @@
+
+7-Zip (z) 25.01 (x64) : Copyright (c) 1999-2025 Igor Pavlov : 2025-08-03
+ 64-bit locale=C.UTF-8 Threads:9 OPEN_MAX:16384, ASM
+
+Scanning the drive for archives:
+1 file, 32585224 bytes (32 MiB)
+
+Extracting archive: nawafidh-delivery/Nawafidh-0.1.0-Windows-x64-unsigned-candidate.exe
+--
+Path = nawafidh-delivery/Nawafidh-0.1.0-Windows-x64-unsigned-candidate.exe
+Type = Nsis
+Physical Size = 32585224
+Method = LZMA:23
+Solid = +
+Headers Size = 73770
+Embedded Stub Size = 116224
+SubType = NSIS-3 Unicode BadCmd=13
+
+Everything is Ok
+
+Files: 9
+Size:       96922094
+Compressed: 32585224
+PASS .browser-build-tools/installer-extracted/obscura.exe

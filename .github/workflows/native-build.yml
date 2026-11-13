@@ -1,0 +1,55 @@
+name: Native build and verification
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+          - os: macos-14
+            target: aarch64-apple-darwin
+            bundles: app,dmg
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            bundles: app,dmg
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Rust target
+        run: rustup target add ${{ matrix.target }}
+      - run: npm ci
+      - run: npm run check
+      - run: npm test -- --run
+      - run: python scripts/package-sidecar-test.py
+      - name: Prepare pinned sidecar
+        run: python scripts/package-sidecar.py --target ${{ matrix.target }}
+      - name: Rust tests
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --target ${{ matrix.target }}
+      - name: Genuine native package build (unsigned)
+        run: npm run tauri -- build --target ${{ matrix.target }} --config src-tauri/tauri.bundle.conf.json --bundles ${{ matrix.bundles }}
+      - name: Verify macOS bundled sidecar
+        if: runner.os == 'macOS'
+        run: python scripts/package-verify.py --root src-tauri/target/${{ matrix.target }}/release/bundle --manifest src-tauri/binaries/sidecar-manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: labeeb-${{ matrix.target }}-unsigned
+          if-no-files-found: error
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.exe
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.msi
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.dmg
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.app/**
+            src-tauri/binaries/sidecar-manifest.json

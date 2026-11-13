@@ -1,0 +1,9 @@
+# Labeeb 0.1.11 — inline video buttons
+
+Native website tabs inject a small video overlay script in document frames. It detects HTML video elements, including dynamically added players, and places a download button on the visible player. Position updates use resize/scroll events and requestAnimationFrame; DOM discovery is debounced, with no periodic polling and a 40-player cap. Hidden documents skip layout work.
+
+YouTube watch/Shorts/embed players offer 720p, 1080p or M4A in a trusted native-shell dialog. Other direct HTTPS media sources use the existing bounded file downloader. Unsupported blob/manifest players display an unavailable label. DRM, arbitrary streaming sites and inaccessible closed shadow roots are not supported.
+
+The injected script has no Tauri permission. A reserved navigation URL is intercepted and cancelled, and only offers a validated URL to the trusted main shell. Downloads require a subsequent explicit format/download action there. The child webview is hidden while the dialog is displayed; closing or starting restores the website. The page cannot choose paths, process arguments, or start downloads through this bridge. Existing direct-download HTTPS, public-address, size, concurrency and redirect restrictions remain in effect.
+
+Verification: frontend typecheck and 51 tests passed, including dynamic video detection and unsupported-source labeling. Rust release tests: 24 passed, 2 network/sidecar tests ignored (their engine paths were already exercised in 0.1.10). NSIS release build succeeded (31.19 MiB). Native 0.1.11 was launched; the overlay button was visibly present on a real YouTube player. Further automated clicks were stopped to avoid overlapping active user input. Native dialog/direct-media end-to-end paths were not independently completed in this revision. The engine versions and on-demand behavior remain as in 0.1.10.

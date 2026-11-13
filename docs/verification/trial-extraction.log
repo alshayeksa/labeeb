@@ -1,0 +1,24 @@
+
+7-Zip (z) 25.01 (x64) : Copyright (c) 1999-2025 Igor Pavlov : 2025-08-03
+ 64-bit locale=C.UTF-8 Threads:9 OPEN_MAX:16384, ASM
+
+Scanning the drive for archives:
+1 file, 32662136 bytes (32 MiB)
+
+Extracting archive: labeeb-trial-delivery/Labeeb-0.1.1-Windows-x64-unsigned-trial.exe
+--
+Path = labeeb-trial-delivery/Labeeb-0.1.1-Windows-x64-unsigned-trial.exe
+Type = Nsis
+Physical Size = 32662136
+Method = LZMA:23
+Solid = +
+Headers Size = 73662
+Embedded Stub Size = 116224
+SubType = NSIS-3 Unicode BadCmd=13
+
+Everything is Ok
+
+Files: 9
+Size:       96978926
+Compressed: 32662136
+PASS .browser-build-tools/trial-installer-extracted/obscura.exe

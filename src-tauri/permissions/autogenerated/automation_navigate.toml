@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-automation-navigate"
+description = "Enables the automation_navigate command without any pre-configured scope."
+commands.allow = ["automation_navigate"]
+
+[[permission]]
+identifier = "deny-automation-navigate"
+description = "Denies the automation_navigate command without any pre-configured scope."
+commands.deny = ["automation_navigate"]

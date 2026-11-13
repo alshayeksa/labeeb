@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8"><title>Labeeb video overlay test</title>
+<style>body{font:20px system-ui;background:#e8eef3;padding:30px}video{display:block;width:640px;height:360px;background:#111;margin:24px 0}button{padding:12px}</style>
+<h1>Inline video download test</h1><p>Public sample video, direct HTTPS source.</p>
+<video controls preload="metadata" src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"></video>
+<button onclick="const v=document.createElement('video'); v.controls=true; v.src='blob:unsupported-test'; document.body.append(v)">Add unsupported video dynamically</button>
+<div style="height:700px">Scroll to verify the overlay follows the video.</div>

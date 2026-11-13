@@ -1,0 +1,19 @@
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { it, expect, vi, afterEach } from "vitest";
+import MediaLibrary from "./MediaLibrary";
+import type { BrowserModel } from "./useBrowser";
+vi.mock('./bridge',()=>({command:vi.fn(async (name:string)=> name==='media_list' ? [{id:'saved-1',title:'Saved clip',path:'D:\\clips\\clip.mp4',size:1024*1024,modified:1700000000,audio:false}] : null)}));
+afterEach(()=>{cleanup();vi.unstubAllGlobals();});
+it('shows saved media and opens it by library id, not a supplied path',async()=>{
+  vi.stubGlobal('IntersectionObserver',class{observe(){} disconnect(){}});
+  const run=vi.fn();
+  const m={locale:'en',isNative:true,busy:false,run,snapshot:{downloads:[],video:{jobs:[]}}} as unknown as BrowserModel;
+  render(<MediaLibrary m={m}/>);
+  expect(await screen.findByText('Saved clip')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button',{name:'Play Saved clip'}));
+  expect(run).toHaveBeenCalledWith('media_open',{id:'saved-1',folder:false});
+  fireEvent.click(screen.getByRole('button',{name:'Open folder'}));
+  expect(run).toHaveBeenCalledWith('media_open',{id:'saved-1',folder:true});
+  fireEvent.change(screen.getByRole('textbox',{name:'Search media'}),{target:{value:'missing'}});
+  expect(screen.getByText('No matching media.')).toBeTruthy();
+});

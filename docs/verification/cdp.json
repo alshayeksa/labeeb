@@ -1,0 +1,25 @@
+{
+  "checked_at_utc": "2026-11-13T04:20:32.856911+00:00",
+  "platform": "Linux x86_64",
+  "websockets_version": "16.0",
+  "binary_sha256": "c1400eec0b1572ea9b583b1544feafb0b25cea4e155b353dbba9c144d94ae6e3",
+  "tests": {
+    "ready_loopback_pid": true,
+    "anonymous_http_denied": true,
+    "anonymous_ws_denied": true,
+    "native_frame_identity": true,
+    "arabic_insertText": true,
+    "key_mutation": true,
+    "mouse_click_hit_test": true,
+    "jpeg_screencast_ack": true
+  },
+  "version": {
+    "Browser": "Chrome/145.0.0.0",
+    "Protocol-Version": "1.3",
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+    "V8-Version": "14.5.0.0",
+    "WebKit-Version": "537.36",
+    "webSocketDebuggerUrl": "ws://127.0.0.1:43213/devtools/browser"
+  },
+  "frame_bytes": 9334
+}

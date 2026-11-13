@@ -1,0 +1,9 @@
+{
+  "version": "0.1.1",
+  "hostVerified": "matches build except expected Tauri NSIS marker",
+  "hostSha256": "c87029df8042012552163a0a75b9383c1d7439eb92d81e1476e7fd6ed22ad7b4",
+  "sidecarSha256": "20922afebb337a35a82311eb0620160699f19793c31521cb112df3f693ec69c2",
+  "loaderSha256": "86545b66cdb0603bc26b626fb9ad610cb6e71f28d468f5ea66df23b03dda96d5",
+  "installerSha256": "631783783a0e9912bd799b273099b573737d20b6a98a4e39e6a16d277d015374",
+  "signed": false
+}

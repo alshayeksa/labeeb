@@ -1,0 +1,21 @@
+{
+  "brand": "Labeeb | لبيب",
+  "host": {
+    "sha256": "dbeb753316194ce459cc751ec0f427eeef8e3780dd550a74970e0ec43f363894",
+    "verifiedAgainstBuild": "exact match except expected Tauri bundle marker UNK -> NSS"
+  },
+  "loader": {
+    "sha256": "86545b66cdb0603bc26b626fb9ad610cb6e71f28d468f5ea66df23b03dda96d5",
+    "extractedMatchesBuild": true
+  },
+  "sidecar": {
+    "sha256": "20922afebb337a35a82311eb0620160699f19793c31521cb112df3f693ec69c2",
+    "extractedMatchesBuild": true
+  },
+  "installer": {
+    "sha256": "200f485bf33344720237d339e0354593a514175b978c9acb08fab4412f77589b",
+    "bytes": 32588192,
+    "signed": false,
+    "installedOrLaunched": false
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "version": "0.1.9",
+  "frontendTests": 46,
+  "rustTests": 20,
+  "idlePollsPerMinuteBefore": 50,
+  "idlePollsPerMinuteAfter": 6,
+  "hiddenPeriodicPollsPerMinute": 0,
+  "restoredTabs": 3,
+  "initialNativeViewsAfterRestore": 1,
+  "successfulNavigationsAfterRestore": 1,
+  "findQuery": "needle",
+  "findMatchesObserved": 2
+}

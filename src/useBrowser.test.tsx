@@ -1,0 +1,46 @@
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { emptySnapshot } from "./bridge";
+import { useBrowser } from "./useBrowser";
+const mocks = vi.hoisted(() => ({command:vi.fn(), event:()=>{}}));
+vi.mock("./bridge", async original => ({...await original<typeof import("./bridge")>(),native:()=>true,command:mocks.command}));
+vi.mock("@tauri-apps/api/event", () => ({listen:vi.fn(async (_name, fn) => {mocks.event=fn; return ()=>{};})}));
+beforeEach(() => {vi.useFakeTimers(); mocks.command.mockResolvedValue({...structuredClone(emptySnapshot),libraryRevision:1}); vi.spyOn(document,"visibilityState","get").mockReturnValue("visible");});
+afterEach(() => {cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.clearAllMocks();});
+it("reduces idle snapshot polling to six calls per minute and stops when hidden", async () => {
+  renderHook(useBrowser);
+  await act(async () => {await vi.advanceTimersByTimeAsync(100);});
+  mocks.command.mockClear();
+  await act(async () => {await vi.advanceTimersByTimeAsync(60_000);});
+  expect(mocks.command).toHaveBeenCalledTimes(6);
+  expect(mocks.command).toHaveBeenLastCalledWith("app_snapshot",{libraryRevision:1,includeFrame:false});
+  vi.spyOn(document,"visibilityState","get").mockReturnValue("hidden");
+  act(() => document.dispatchEvent(new Event("visibilitychange")));
+  mocks.command.mockClear();
+  await act(async () => {await vi.advanceTimersByTimeAsync(60_000);});
+  expect(mocks.command).not.toHaveBeenCalled();
+});
+it("coalesces native events and preserves the library when the server omits unchanged lists", async () => {
+  const history = [{id:1,title:"page",url:"https://example.com"}];
+  mocks.command.mockResolvedValue({...structuredClone(emptySnapshot),history,libraryRevision:3});
+  const {result} = renderHook(useBrowser);
+  await act(async () => {await vi.advanceTimersByTimeAsync(100);});
+  const originalHistory = result.current.snapshot.history;
+  const {history:_h, bookmarks:_b, ...delta} = {...structuredClone(emptySnapshot),libraryRevision:3};
+  mocks.command.mockResolvedValue(delta); mocks.command.mockClear();
+  act(() => {for (let i=0;i<30;i++) mocks.event();});
+  await act(async () => {await vi.advanceTimersByTimeAsync(100);});
+  expect(mocks.command).toHaveBeenCalledTimes(1);
+  expect(result.current.snapshot.history).toBe(originalHistory);
+  expect(result.current.snapshot.history[0].url).toBe("https://example.com");
+});
+it("requests automation screenshots only while the automation page is visible", async () => {
+  const {result} = renderHook(useBrowser);
+  await act(async () => {await vi.advanceTimersByTimeAsync(100);});
+  act(() => result.current.setSection("automation"));
+  await act(async () => {});
+  expect(mocks.command).toHaveBeenLastCalledWith("app_snapshot",{libraryRevision:1,includeFrame:true});
+  act(() => result.current.setSection("browser"));
+  await act(async () => {});
+  expect(mocks.command).toHaveBeenLastCalledWith("app_snapshot",{libraryRevision:1,includeFrame:false});
+});

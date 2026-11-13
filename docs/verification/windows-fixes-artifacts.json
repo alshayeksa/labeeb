@@ -1,0 +1,31 @@
+{
+  "version": "0.1.2",
+  "created_at_utc": "2026-11-13T06:48:20.971853+00:00",
+  "target": "x86_64-pc-windows-msvc",
+  "signed": false,
+  "zip_integrity": "passed",
+  "portable_launch": "passed",
+  "installer_install_uninstall": "not tested",
+  "artifacts": [
+    {
+      "path": "artifacts/Labeeb-0.1.2-Windows-x64-setup.exe",
+      "bytes": 32472516,
+      "sha256": "0ec6edc5d1fa2674eecbb70285168dff5d0da6cc9d247caae8e5d96935ebd0b3"
+    },
+    {
+      "path": "artifacts/Labeeb-0.1.2-Windows-x64-portable.zip",
+      "bytes": 41851223,
+      "sha256": "181c92a011d0c99fbddd49afefba3d2e1a3149437b65093b49126c232eb33ed9"
+    },
+    {
+      "path": "artifacts/Labeeb-0.1.2-Windows-x64-portable/labeeb-browser.exe",
+      "bytes": 15145984,
+      "sha256": "0481fe9a6e4dac3d4f6fa2255383aeea60a0b428a7f33dfda02803ed8268dcec"
+    },
+    {
+      "path": "artifacts/Labeeb-0.1.2-Windows-x64-portable/obscura.exe",
+      "bytes": 78891520,
+      "sha256": "20922afebb337a35a82311eb0620160699f19793c31521cb112df3f693ec69c2"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+   Compiling nawafidh-browser v0.1.0 (/workspace/scratch/13230bd84aa2/nawafidh-browser/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.05s
+     Running unittests src/lib.rs (src-tauri/target/debug/build/nawafidh-browser/853a8ec485f5aafa/out/nawafidh_core-853a8ec485f5aafa)
+
+running 13 tests
+test automation::tests::real_sidecar_lifecycle ... ignored, requires an explicitly supplied verified Obscura render release
+test policy::tests::approval_stale_denied ... ok
+test policy::tests::approval_single_use ... ok
+test automation::tests::validates_actions_fail_closed ... ok
+test policy::tests::filename_safe ... ok
+test policy::tests::expired ... ok
+test policy::tests::private_ranges ... ok
+test policy::tests::public_ranges ... ok
+test policy::tests::unsafe_urls_rejected ... ok
+test policy::tests::search_and_address ... ok
+test automation::tests::refuses_checksum_mismatch_before_launch ... ok
+test store::tests::duplicate ... ok
+test store::tests::persistence ... ok
+
+test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests nawafidh_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.002s
+
+OK
+FINAL_CHECKS_EXIT_CODE=0

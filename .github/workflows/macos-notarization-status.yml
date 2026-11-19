@@ -1,0 +1,35 @@
+name: Apple notarization status
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    runs-on: macos-15
+    timeout-minutes: 5
+    steps:
+      - name: Read Apple notarization history
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          xcrun notarytool history --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --output-format json > "$RUNNER_TEMP/notarization-history.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          data = json.loads((Path(os.environ['RUNNER_TEMP']) / 'notarization-history.json').read_text())
+          entries = data.get('history', [])[:10]
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as output:
+              output.write('## Recent Apple notarization submissions\n\n')
+              if not entries:
+                  output.write('No submissions found.\n')
+              for entry in entries:
+                  line = f"{entry.get('createdDate', '')} | {entry.get('name', '')} | {entry.get('status', '')} | {entry.get('id', '')}"
+                  print(line)
+                  output.write(f'- {line}\n')
+          PY

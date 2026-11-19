@@ -337,16 +337,17 @@ async fn kill_tree(child: &mut tokio::process::Child) {
         assert!(!watch.stalled(now + Duration::from_secs(300), false));
         assert!(watch.stalled(now + Duration::from_secs(781), true));
     }
-    #[tokio::test] async fn progress_and_postprocessing_markers_update_the_job() {
-        let dir = tempfile::tempdir().unwrap();
-        let manager = VideoManager::new(dir.path().join("tools"), dir.path().join("videos"));
-        let _gate = manager.gate.acquire().await.unwrap();
-        manager.start("https://youtu.be/BaW_jenozKc", "720", None).unwrap();
-        let mut job = manager.jobs.lock().unwrap()[0].clone();
+    #[test] fn progress_and_postprocessing_markers_update_the_job() {
+        let mut job = Job {
+            id: "progress-test".into(), title: String::new(), url: String::new(),
+            quality: "720".into(), status: "downloading".into(), percent: 0.,
+            speed: String::new(), eta: String::new(), folder: String::new(),
+            error: None, started_ms: 0, cancel: Arc::new(AtomicBool::new(false)),
+            pid: Arc::new(AtomicU32::new(0)),
+        };
         apply_line(&mut job, "LABEEB| 42.5%|2MiB/s|00:12");
         assert_eq!(job.percent, 42.5); assert_eq!(job.speed, "2MiB/s"); assert_eq!(job.eta, "00:12");
         apply_line(&mut job, "LABEEB_PROCESSING|BaW_jenozKc"); assert_eq!(job.status, "merging");
-        manager.cancel(&job.id).unwrap();
     }
     #[test] fn canonical_video_urls() {
         for u in ["https://youtu.be/BaW_jenozKc?t=3", "https://www.youtube.com/watch?v=BaW_jenozKc&list=abc", "https://m.youtube.com/shorts/BaW_jenozKc"] {
@@ -361,6 +362,17 @@ async fn kill_tree(child: &mut tokio::process::Child) {
         let dir = tempfile::tempdir().unwrap(); let file = dir.path().join("engine");
         tokio::fs::write(&file, "altered").await.unwrap(); assert!(!verified(&file, TOOLS[0].2).await);
     }
+    #[cfg(not(windows))]
+    #[test] fn unsupported_platform_rejects_download_without_creating_a_job() {
+        let dir = tempfile::tempdir().unwrap();
+        let manager = VideoManager::new(dir.path().join("tools"), dir.path().join("videos"));
+        let error = manager.start("https://youtu.be/BaW_jenozKc", "720", None).unwrap_err();
+        assert!(error.contains("Windows"));
+        assert!(manager.snapshot()["jobs"].as_array().unwrap().is_empty());
+        assert!(!dir.path().join("tools").exists());
+        assert!(!dir.path().join("videos").exists());
+    }
+    #[cfg(windows)]
     #[tokio::test] async fn cancelled_queued_job_never_starts() {
         let dir = tempfile::tempdir().unwrap();
         let manager = VideoManager::new(dir.path().join("tools"), dir.path().join("videos"));

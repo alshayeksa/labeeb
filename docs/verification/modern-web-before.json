@@ -1,0 +1,59 @@
+{
+  "environment": {
+    "node": "v22.23.2",
+    "platform": "win32",
+    "cpu": "Intel(R) Core(TM) Ultra 7 258V",
+    "engine": "Vitest/jsdom, React development build; IPC mocked; no browser layout/paint"
+  },
+  "scenario": {
+    "tabs": 80,
+    "history": 5000,
+    "inputChanges": 24,
+    "measuredShellRuns": 5,
+    "searchRuns": 7
+  },
+  "searchBatchMs": [
+    46.08829999999989,
+    47.17610000000013,
+    47.73669999999993,
+    55.21589999999992,
+    46.192400000000134,
+    47.15219999999999,
+    52.13969999999995
+  ],
+  "searchMedianMs": 47.17610000000013,
+  "shellElapsedMs": [
+    209.11789999999974,
+    341.96280000000024,
+    315.1532000000002,
+    723.7309,
+    824.2309999999998
+  ],
+  "shellMedianMs": 341.96280000000024,
+  "reactCommitMs": [
+    155.79310000001215,
+    288.6892000000389,
+    227.27170000001342,
+    590.2687000000105,
+    684.7965999999569
+  ],
+  "reactMedianMs": 288.6892000000389,
+  "tabGlyphRenders": [
+    1920,
+    1920,
+    1920,
+    1920,
+    1920
+  ],
+  "sourceSha256": {
+    "src/App.tsx": "7d5adb87ef820b049a6a31840dfc117dd4ec438150e6a764fd67cf8c891eb965",
+    "src/useBrowser.ts": "a529f8535449ca75decc22daec189bbbef241876ea83c0942a83b12e94328a34",
+    "src/addressSuggestions.ts": "c7994798884c1fbfbd4caa1a08644e774732d5ba3964dbc575e1fcc0b72f7db8",
+    "src/styles.css": "48e151a5d228e5edc375be887184d0c38cc9aeee9c2317d5c98254c414050897",
+    "package-lock.json": "ee0fd2cc205d0caebf9a0c4f42eead011cf465c65bb77d0f96fe1d331c4ecd3a"
+  },
+  "bundle": {
+    "index-0rw4AaR1.css": 49295,
+    "index-QdBYV4t3.js": 367554
+  }
+}

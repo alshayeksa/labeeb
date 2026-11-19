@@ -33,6 +33,26 @@ fn describe(path: &Path, title: Option<&str>) -> Result<Media> {
     let title = if title.chars().any(char::is_alphanumeric) { title } else { if audio { "Audio" } else { "Video" }.into() };
     Ok(Media {id, title, path, size:meta.len(), modified:meta.modified().unwrap_or(UNIX_EPOCH).duration_since(UNIX_EPOCH).unwrap_or_default().as_secs(), audio})
 }
+/// Moves a file to the Recycle Bin so a mistaken delete can be undone.
+pub(crate) fn trash(path: &Path) -> Result<()> {
+    #[cfg(windows)] {
+        use std::os::windows::ffi::OsStrExt;
+        use windows::{core::PCWSTR, Win32::UI::Shell::{SHFileOperationW, SHFILEOPSTRUCTW, FO_DELETE, FOF_ALLOWUNDO, FOF_NOCONFIRMATION, FOF_NOERRORUI, FOF_SILENT}};
+        let raw = path.to_string_lossy();
+        let shell_path = if let Some(unc) = raw.strip_prefix(r"\\?\UNC\") { format!(r"\\{unc}") } else { raw.strip_prefix(r"\\?\").unwrap_or(&raw).to_string() };
+        // The shell expects a list of paths ending with two NULs.
+        let from: Vec<u16> = std::ffi::OsStr::new(&shell_path).encode_wide().chain([0, 0]).collect();
+        let mut operation = SHFILEOPSTRUCTW {
+            wFunc: FO_DELETE, pFrom: PCWSTR(from.as_ptr()),
+            fFlags: (FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT).0 as u16,
+            ..Default::default()
+        };
+        let code = unsafe { SHFileOperationW(&mut operation) };
+        if code != 0 || operation.fAnyOperationsAborted.as_bool() { return Err("تعذر حذف الملف؛ قد يكون مفتوحًا في برنامج آخر".into()); }
+        Ok(())
+    }
+    #[cfg(not(windows))] { std::fs::remove_file(path).map_err(|_| "تعذر حذف الملف".into()) }
+}
 impl MediaLibrary {
     pub fn new(tools: PathBuf, folder: PathBuf) -> Self {
         let parent = tools.parent().unwrap_or(&tools);
@@ -70,6 +90,26 @@ impl MediaLibrary {
         let m = self.items.lock().unwrap().iter().find(|m| m.id == id).cloned().ok_or("الفيديو غير موجود")?;
         let current = describe(&m.path, Some(&m.title))?;
         if current.id != id { return Err("مسار الملف تغير".into()); } Ok(current)
+    }
+    /// Deletes a library item's file (to the Recycle Bin) and forgets it. The file is
+    /// looked up by its recorded id; a caller can never name a path.
+    pub fn remove(&self, id: &str) -> Result<()> {
+        let known = self.items.lock().unwrap().iter().find(|m| m.id == id).cloned().ok_or("الفيديو غير موجود")?;
+        // A file that is already gone only needs to leave the index.
+        if let Ok(current) = describe(&known.path, Some(&known.title)) {
+            if current.id != id { return Err("مسار الملف تغير".into()); }
+            trash(&current.path)?;
+        }
+        let mut items = self.items.lock().unwrap();
+        items.retain(|m| m.id != id);
+        let saved = self.save(&items);
+        drop(items);
+        if let Ok(entries) = std::fs::read_dir(&self.cache) {
+            for entry in entries.flatten() {
+                if entry.file_name().to_string_lossy().starts_with(id) { let _ = std::fs::remove_file(entry.path()); }
+            }
+        }
+        saved
     }
     pub fn open(&self, id: &str, folder: bool) -> Result<()> {
         let m = self.resolve(id)?;
@@ -124,6 +164,20 @@ impl MediaLibrary {
         assert_eq!(library.list()[0].id, items[0].id);
         std::fs::remove_file(media).unwrap(); assert!(library.list().is_empty());
         assert!(library.resolve(&items[0].id).is_err());
+        // Removing an entry whose file is already gone clears it from the index.
+        assert!(library.remove("unknown").is_err());
+        library.remove(&items[0].id).unwrap();
+        assert!(library.items.lock().unwrap().is_empty());
+    }
+    #[test] #[ignore = "Sends a small temporary file to the real Recycle Bin"]
+    fn delete_moves_the_file_to_the_recycle_bin_and_forgets_it() {
+        let dir = tempfile::tempdir().unwrap(); let folder = dir.path().join("downloads"); std::fs::create_dir(&folder).unwrap();
+        let media = folder.join("حذف تجريبي.mp4"); std::fs::write(&media, b"test").unwrap();
+        let library = MediaLibrary::new(dir.path().join("tools"), folder);
+        let id = library.list()[0].id.clone();
+        library.remove(&id).unwrap();
+        assert!(!media.exists());
+        assert!(library.list().is_empty());
     }
     #[tokio::test] #[ignore = "Requires local sample media and verified FFmpeg"]
     async fn generates_and_reuses_a_real_thumbnail() {

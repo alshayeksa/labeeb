@@ -1,9 +1,4 @@
-use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    net::IpAddr,
-    time::{Duration, Instant},
-};
+use std::net::IpAddr;
 use url::Url;
 pub fn navigation_url(input: &str) -> Result<Url, String> {
     let value = input.trim();
@@ -41,89 +36,6 @@ pub fn native_url_allowed(u: &Url) -> bool {
             && u.host_str().is_some()
             && u.username().is_empty()
             && u.password().is_none())
-}
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ApprovalView {
-    pub id: String,
-    pub kind: String,
-    pub summary: String,
-    pub origin: String,
-    pub payload: String,
-}
-struct Pending<T> {
-    view: ApprovalView,
-    action: T,
-    expires: Instant,
-    generation: u64,
-}
-pub struct ApprovalQueue<T> {
-    pending: HashMap<String, Pending<T>>,
-}
-impl<T> Default for ApprovalQueue<T> {
-    fn default() -> Self {
-        Self {
-            pending: HashMap::new(),
-        }
-    }
-}
-impl<T> ApprovalQueue<T> {
-    pub fn insert(
-        &mut self,
-        kind: &str,
-        summary: &str,
-        origin: &str,
-        payload: &str,
-        action: T,
-        generation: u64,
-    ) -> Result<String, String> {
-        self.pending.retain(|_, p| p.expires > Instant::now());
-        if self.pending.len() >= 32 {
-            return Err("Too many pending approvals".into());
-        }
-        let id = uuid::Uuid::new_v4().to_string();
-        self.pending.insert(
-            id.clone(),
-            Pending {
-                view: ApprovalView {
-                    id: id.clone(),
-                    kind: kind.into(),
-                    summary: summary.into(),
-                    origin: origin.into(),
-                    payload: payload.into(),
-                },
-                action,
-                generation,
-                expires: Instant::now() + Duration::from_secs(120),
-            },
-        );
-        Ok(id)
-    }
-    pub fn list(&mut self) -> Vec<ApprovalView> {
-        self.pending.retain(|_, p| p.expires > Instant::now());
-        self.pending.values().map(|p| p.view.clone()).collect()
-    }
-    pub fn resolve(
-        &mut self,
-        id: &str,
-        approved: bool,
-        generation: u64,
-    ) -> Result<Option<T>, String> {
-        let p = self
-            .pending
-            .remove(id)
-            .ok_or("Approval missing, expired, or already used")?;
-        if !approved {
-            return Ok(None);
-        }
-        if p.expires <= Instant::now() || p.generation != generation {
-            return Err("Approval expired or page changed; request again".into());
-        }
-        Ok(Some(p.action))
-    }
-    pub fn clear(&mut self) {
-        self.pending.clear();
-    }
 }
 pub fn safe_filename(s: &str) -> String {
     let n: String = s
@@ -199,28 +111,6 @@ mod tests {
             .as_str()
             .contains("q="));
         assert_eq!(navigation_url("example.com").unwrap().scheme(), "https");
-    }
-    #[test]
-    fn approval_single_use() {
-        let mut q = ApprovalQueue::default();
-        let id = q.insert("input", "click", "x", "x", 42, 1).unwrap();
-        assert_eq!(q.resolve(&id, true, 1).unwrap(), Some(42));
-        assert!(q.resolve(&id, true, 1).is_err());
-    }
-    #[test]
-    fn approval_stale_denied() {
-        let mut q = ApprovalQueue::default();
-        let id = q.insert("input", "click", "x", "x", 42, 1).unwrap();
-        assert!(q.resolve(&id, true, 2).is_err());
-        let id = q.insert("input", "click", "x", "x", 42, 1).unwrap();
-        assert_eq!(q.resolve(&id, false, 1).unwrap(), None);
-    }
-    #[test]
-    fn expired() {
-        let mut q = ApprovalQueue::default();
-        let id = q.insert("input", "click", "x", "x", 42, 1).unwrap();
-        q.pending.get_mut(&id).unwrap().expires = Instant::now() - Duration::from_secs(1);
-        assert!(q.resolve(&id, true, 1).is_err());
     }
     #[test]
     fn filename_safe() {

@@ -1,0 +1,64 @@
+{
+  "environment": {
+    "node": "v22.23.2",
+    "platform": "win32",
+    "cpu": "Intel(R) Core(TM) Ultra 7 258V",
+    "engine": "Vitest/jsdom, React development build; IPC mocked; no browser layout/paint"
+  },
+  "scenario": {
+    "tabs": 80,
+    "history": 5000,
+    "inputChanges": 24,
+    "measuredShellRuns": 5,
+    "searchRuns": 7
+  },
+  "searchBatchMs": [
+    6.294100000000071,
+    5.890599999999949,
+    6.361099999999851,
+    6.102399999999989,
+    6.396400000000085,
+    6.592499999999973,
+    6.341000000000122
+  ],
+  "searchMedianMs": 6.341000000000122,
+  "shellElapsedMs": [
+    111.69920000000002,
+    91.39489999999978,
+    191.8687,
+    106.8447000000001,
+    74.93560000000025
+  ],
+  "shellMedianMs": 106.8447000000001,
+  "reactCommitMs": [
+    78.67270000001008,
+    66.46059999998488,
+    167.74999999995907,
+    83.58239999999978,
+    50.50729999999521
+  ],
+  "reactMedianMs": 78.67270000001008,
+  "tabGlyphRenders": [
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "sourceSha256": {
+    "src/App.tsx": "f3efd45e6dff148e135fcbd7d1c199f09b52549d8e9797d0a7afe44b04df01cb",
+    "src/useBrowser.ts": "bfc3f320f4906f319d247da6d7a9864db797c1e3775791d58b12edacfd263496",
+    "src/addressSuggestions.ts": "5dd492a145cd830a2adecc81ab49f1b9f540dddaaf7b5e2d5bd0b5c4e4883598",
+    "src/TabStrip.tsx": "486886ac988c3c1720f8304091f4b298f60143df0f926ccae6470a56da641f96",
+    "src/AssistantPanel.tsx": "24ffad9d252c0da033e7f3b0425e96a37dc33b03d16139edcaf5f5f92a9b2039",
+    "src/ConfirmDialog.tsx": "afd754d1ea79cf21e7ac2a54bb0d24f294260b2b369e9e537328c795f85149fc",
+    "src/snapshot.ts": "29ab16ef7701e0affcad6ad03540f7e846f8192f494190aaaf616b7152071fcb",
+    "src/styles.css": "4a911def1b0750bd662e3d3e02c43de06cf9c109417853b03ca72ccaef092927",
+    "package-lock.json": "17b97eb794a76d402fe95ded695a21226934a47dc16b3984c40f70a84f4085cf",
+    "scripts/ui-performance.test.tsx": "b67c8483dac325ed83327f285dabd3c912d94d4cbd4e1ee4573afb4220464344"
+  },
+  "bundle": {
+    "index-BRlBNnAN.js": 371428,
+    "index-DAmQKNdh.css": 49779
+  }
+}

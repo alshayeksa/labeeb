@@ -38,10 +38,15 @@ impl Session {
         result
     }
 }
+const SCHEMA_VERSION: i64 = 1;
 impl Store {
     pub fn open(path: &Path) -> Result<Self, String> {
         let db = Connection::open(path).map_err(|e| e.to_string())?;
-        db.execute_batch("PRAGMA journal_mode=WAL;PRAGMA foreign_keys=ON;PRAGMA busy_timeout=5000;CREATE TABLE IF NOT EXISTS history(id INTEGER PRIMARY KEY,title TEXT NOT NULL,url TEXT NOT NULL,visited_at INTEGER NOT NULL DEFAULT(unixepoch()));CREATE INDEX IF NOT EXISTS history_time ON history(visited_at);CREATE TABLE IF NOT EXISTS bookmarks(id INTEGER PRIMARY KEY,title TEXT NOT NULL,url TEXT NOT NULL UNIQUE,visited_at INTEGER NOT NULL DEFAULT(unixepoch()));CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);PRAGMA user_version=1;").map_err(|e|e.to_string())?;
+        db.execute_batch("PRAGMA journal_mode=WAL;PRAGMA foreign_keys=ON;PRAGMA busy_timeout=5000;CREATE TABLE IF NOT EXISTS history(id INTEGER PRIMARY KEY,title TEXT NOT NULL,url TEXT NOT NULL,visited_at INTEGER NOT NULL DEFAULT(unixepoch()));CREATE INDEX IF NOT EXISTS history_time ON history(visited_at);CREATE TABLE IF NOT EXISTS bookmarks(id INTEGER PRIMARY KEY,title TEXT NOT NULL,url TEXT NOT NULL UNIQUE,visited_at INTEGER NOT NULL DEFAULT(unixepoch()));CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);").map_err(|e|e.to_string())?;
+        // Schema versioning: the statements above are version 1. A later version adds its
+        // steps here, each guarded by `version < N`, and never lowers a newer file's version.
+        let version: i64 = db.query_row("PRAGMA user_version", [], |r| r.get(0)).map_err(|e| e.to_string())?;
+        if version < SCHEMA_VERSION { db.execute_batch(&format!("PRAGMA user_version={SCHEMA_VERSION};")).map_err(|e| e.to_string())?; }
         Ok(Self { db, revision: Cell::new(1) })
     }
     pub fn library_revision(&self) -> u64 { self.revision.get() }
@@ -73,9 +78,9 @@ impl Store {
         let mut s = self
             .db
             .prepare(if bookmarks {
-                "SELECT id,title,url,visited_at FROM bookmarks ORDER BY id DESC LIMIT 2000"
+                "SELECT id,title,url,visited_at FROM bookmarks ORDER BY id DESC"
             } else {
-                "SELECT id,title,url,visited_at FROM history ORDER BY id DESC LIMIT 500"
+                "SELECT id,title,url,visited_at FROM history ORDER BY id DESC"
             })
             .map_err(|e| e.to_string())?;
         let rows = s
@@ -108,6 +113,14 @@ impl Store {
             .execute("DELETE FROM history", [])
             .map_err(|e| e.to_string())?;
         self.changed();
+        Ok(())
+    }
+    /// A free-form preference stored beside the locale, or None when unset.
+    pub fn setting(&self, key: &str) -> Option<String> {
+        self.db.query_row("SELECT value FROM settings WHERE key=?1", [key], |r| r.get(0)).ok()
+    }
+    pub fn set_setting(&self, key: &str, value: &str) -> Result<(), String> {
+        self.db.execute("INSERT INTO settings(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", params![key, value]).map_err(|e| e.to_string())?;
         Ok(())
     }
     pub fn locale(&self) -> String {

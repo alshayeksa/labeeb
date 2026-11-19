@@ -1,32 +1,21 @@
 fn main() {
-    let out = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
-    let p = std::path::Path::new("binaries/sidecar-manifest.json");
-    println!("cargo:rerun-if-changed={}", p.display());
-    let pin = if cfg!(feature = "desktop") && p.exists() {
-        let v: serde_json::Value =
-            serde_json::from_slice(&std::fs::read(p).unwrap()).expect("Invalid manifest");
-        assert_eq!(
-            v["target"].as_str(),
-            Some(std::env::var("TARGET").unwrap().as_str()),
-            "Sidecar target mismatch"
-        );
-        let h = v["sha256"].as_str().expect("Missing hash");
-        assert!(h.len() == 64 && h.chars().all(|c| c.is_ascii_hexdigit()));
-        h.to_owned()
-    } else {
-        String::new()
-    };
-    std::fs::write(
-        out.join("sidecar_pin.rs"),
-        format!("pub const SIDECAR_SHA256: &str = {:?};", pin),
-    )
-    .unwrap();
     #[cfg(feature = "desktop")]
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
             "app_snapshot",
+            "vault_unlock", "vault_status", "vault_list", "vault_add", "vault_reveal", "vault_delete",
+            "password_offer_dismiss", "password_offer_save", "password_fill_choices", "password_fill",
             "tab_find",
             "download_retry",
+            "download_reveal",
+            "download_dismiss",
+            "downloads_clear",
+            "download_open",
+            "download_delete",
+            "media_delete",
+            "viora_open",
+            "viora_choose",
+            "site_data_clear",
             "video_start",
             "video_direct",
             "media_list",
@@ -45,17 +34,15 @@ fn main() {
             "browser_bounds",
             "bookmark_add",
             "bookmark_remove",
+            "bookmark_unstar",
             "history_clear",
             "download_cancel",
-            "approval_resolve",
             "settings_update",
+            "window_fullscreen_toggle",
             "ai_key_save",
             "ai_key_delete",
-            "ai_ask",
-            "automation_start",
-            "automation_stop",
-            "automation_navigate",
-            "automation_input",
+            "ai_ask", "ai_cancel",
+            "page_context", "reader_export",
         ]),
     ))
     .expect("Invalid Tauri configuration");

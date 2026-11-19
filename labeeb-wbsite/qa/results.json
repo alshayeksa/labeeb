@@ -1,0 +1,69 @@
+{
+  "results": [
+    {
+      "lang": "ar",
+      "width": 1440,
+      "overflow": false,
+      "missing": [],
+      "language": "ar",
+      "first": "./assets/about.webp"
+    },
+    {
+      "lang": "ar",
+      "width": 768,
+      "overflow": false,
+      "missing": [],
+      "language": "ar",
+      "first": "./assets/about.webp"
+    },
+    {
+      "lang": "ar",
+      "width": 390,
+      "overflow": false,
+      "missing": [],
+      "language": "ar",
+      "first": "./assets/about.webp"
+    },
+    {
+      "lang": "ar",
+      "width": 320,
+      "overflow": false,
+      "missing": [],
+      "language": "ar",
+      "first": "./assets/about.webp"
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "overflow": false,
+      "missing": [],
+      "language": "en",
+      "first": "../assets/about.webp"
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "overflow": false,
+      "missing": [],
+      "language": "en",
+      "first": "../assets/about.webp"
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "overflow": false,
+      "missing": [],
+      "language": "en",
+      "first": "../assets/about.webp"
+    },
+    {
+      "lang": "en",
+      "width": 320,
+      "overflow": false,
+      "missing": [],
+      "language": "en",
+      "first": "../assets/about.webp"
+    }
+  ],
+  "errors": []
+}

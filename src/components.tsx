@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Globe2 } from "lucide-react";
+import { Globe2 } from "./icons";
 export function IconButton({
   label,
   children,

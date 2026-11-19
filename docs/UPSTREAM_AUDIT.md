@@ -1,3 +1,5 @@
+> Historical archive: this audit covers a component removed from the current application. It is not a current feature list or build guide. See [current release status](../RELEASE_STATUS.md).
+
 # Obscura audit and integration evidence
 
 Audit: 2026-11-12; recovered after workspace restart 2026-11-13. Evidence below distinguishes upstream source inspection, executed Linux release tests, and unverified platform behavior. It is not Chromium conformance or production certification.

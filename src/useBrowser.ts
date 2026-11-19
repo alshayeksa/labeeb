@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { command, emptySnapshot, native, normalizeAddress } from "./bridge";
 import type { Snapshot } from "./bridge";
+import { reconcileSnapshot } from "./snapshot";
 import { listen } from "@tauri-apps/api/event";
 import { translate } from "./i18n";
 import type { Locale, TranslationKey } from "./i18n";
@@ -9,9 +10,6 @@ export type Section =
   | "history"
   | "bookmarks"
   | "downloads"
-  | "approvals"
-  | "automation"
-  | "diagnostics"
   | "about"
   | "settings";
 export function useBrowser() {
@@ -26,10 +24,9 @@ export function useBrowser() {
     pending = useRef(false),
     busyRef = useRef(false),
     mounted = useRef(true);
-  const snapshotRef = useRef(snapshot), sectionRef = useRef(section), libraryRevision = useRef<number | null>(null), lastWire = useRef("");
+  const snapshotRef = useRef(snapshot), libraryRevision = useRef<number | null>(null);
   const reschedule = useRef(() => {});
   snapshotRef.current = snapshot;
-  sectionRef.current = section;
   const t = useCallback(
     (key: TranslationKey) => translate(locale, key),
     [locale],
@@ -46,14 +43,11 @@ export function useBrowser() {
       try {
         const result = await command<Snapshot>("app_snapshot", {
           libraryRevision: libraryRevision.current,
-          includeFrame: sectionRef.current === "automation" && document.visibilityState !== "hidden",
         });
         if (mounted.current && ticket === sequence.current) {
           libraryRevision.current = result.libraryRevision ?? null;
-          const wire = JSON.stringify(result);
-          if (wire !== lastWire.current) {
-            lastWire.current = wire;
-            const merged = {...result, history:result.history ?? snapshotRef.current.history, bookmarks:result.bookmarks ?? snapshotRef.current.bookmarks};
+          const merged = reconcileSnapshot(snapshotRef.current, result);
+          if (merged !== snapshotRef.current) {
             snapshotRef.current = merged;
             setSnapshot(merged);
           }
@@ -79,8 +73,7 @@ export function useBrowser() {
       clearTimeout(timer);
       if (disposed || !isNative || document.visibilityState === "hidden") return;
       const state = snapshotRef.current;
-      const active = (state.video?.jobs.some(j => !["completed", "failed", "cancelled"].includes(j.status)) ?? false) || state.tabs.some(tab => tab.loading) || state.downloads.some(item => item.status === "running") ||
-        (sectionRef.current === "automation" && state.automation.status === "running");
+      const active = (state.video?.jobs.some(j => !["completed", "failed", "cancelled"].includes(j.status)) ?? false) || state.tabs.some(tab => tab.loading) || state.downloads.some(item => item.status === "running");
       timer = setTimeout(() => { void refresh().finally(schedule); }, active ? 1200 : 10000);
     };
     const changed = () => {
@@ -166,9 +159,6 @@ export function useBrowser() {
     if (isNative) await run("settings_update", { locale: value });
     else setLocale(value);
   };
-  const queue = async (name: string, args?: Record<string, unknown>) => {
-    if (await run(name, args, t("approvalPending"))) setSection("approvals");
-  };
   return {
     snapshot,
     locale,
@@ -187,7 +177,6 @@ export function useBrowser() {
     createTab,
     navigate,
     switchLocale,
-    queue,
   };
 }
 export type BrowserModel = ReturnType<typeof useBrowser>;

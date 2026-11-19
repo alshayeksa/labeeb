@@ -13,7 +13,7 @@ it("reduces idle snapshot polling to six calls per minute and stops when hidden"
   mocks.command.mockClear();
   await act(async () => {await vi.advanceTimersByTimeAsync(60_000);});
   expect(mocks.command).toHaveBeenCalledTimes(6);
-  expect(mocks.command).toHaveBeenLastCalledWith("app_snapshot",{libraryRevision:1,includeFrame:false});
+  expect(mocks.command).toHaveBeenLastCalledWith("app_snapshot",{libraryRevision:1});
   vi.spyOn(document,"visibilityState","get").mockReturnValue("hidden");
   act(() => document.dispatchEvent(new Event("visibilitychange")));
   mocks.command.mockClear();
@@ -34,13 +34,13 @@ it("coalesces native events and preserves the library when the server omits unch
   expect(result.current.snapshot.history).toBe(originalHistory);
   expect(result.current.snapshot.history[0].url).toBe("https://example.com");
 });
-it("requests automation screenshots only while the automation page is visible", async () => {
+it("refreshes state when switching sections without requesting automation frames", async () => {
   const {result} = renderHook(useBrowser);
   await act(async () => {await vi.advanceTimersByTimeAsync(100);});
-  act(() => result.current.setSection("automation"));
+  act(() => result.current.setSection("downloads"));
   await act(async () => {});
-  expect(mocks.command).toHaveBeenLastCalledWith("app_snapshot",{libraryRevision:1,includeFrame:true});
+  expect(mocks.command).toHaveBeenLastCalledWith("app_snapshot",{libraryRevision:1});
   act(() => result.current.setSection("browser"));
   await act(async () => {});
-  expect(mocks.command).toHaveBeenLastCalledWith("app_snapshot",{libraryRevision:1,includeFrame:false});
+  expect(mocks.command).toHaveBeenLastCalledWith("app_snapshot",{libraryRevision:1});
 });

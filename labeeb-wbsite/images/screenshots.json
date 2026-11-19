@@ -1,0 +1,169 @@
+{
+  "version": "0.1.49",
+  "capture": "Actual React interfaces with isolated demonstration data. Not native-window captures. No personal data or real AI requests.",
+  "entries": [
+    {
+      "file": "01-home-ar-dark.png",
+      "title": "الرئيسية — العربية / داكن",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "02-home-ar-light.png",
+      "title": "الرئيسية — العربية / فاتح",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "03-home-en-dark.png",
+      "title": "الرئيسية — الإنجليزية / داكن",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "04-home-en-light.png",
+      "title": "الرئيسية — الإنجليزية / فاتح",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "05-home-compact.png",
+      "title": "القائمة الجانبية المختصرة",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "06-assistant-welcome.png",
+      "title": "المساعد — بداية المحادثة",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "07-assistant-conversation.png",
+      "title": "المساعد — محادثة وروابط قابلة للفتح",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "08-assistant-history.png",
+      "title": "المساعد — المحادثات المحفوظة",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "09-assistant-en-light.png",
+      "title": "المساعد — الإنجليزية / فاتح",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "10-bookmarks.png",
+      "title": "المفضلة",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "11-bookmarks-search.png",
+      "title": "البحث في المفضلة",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "12-history.png",
+      "title": "سجل التصفح",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "13-history-search.png",
+      "title": "البحث في سجل التصفح",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "14-downloads-library.png",
+      "title": "التنزيلات ومكتبة الوسائط",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "15-video-download.png",
+      "title": "تنزيل الفيديو واختيار الجودة",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "16-settings-appearance.png",
+      "title": "الإعدادات — المظهر واللغة ومحرك البحث",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "17-settings-local-data.png",
+      "title": "الإعدادات — البيانات المحلية وخزنة لبيب",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "18-settings-ai.png",
+      "title": "الإعدادات — اتصال المساعد",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "19-about.png",
+      "title": "عن لبيب",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "20-about-licenses.png",
+      "title": "عن لبيب — المصادر والتراخيص",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "21-features.png",
+      "title": "خصائص لبيب",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "22-features-more.png",
+      "title": "خصائص لبيب — الأمان والتخصيص",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "23-keyboard-shortcuts.png",
+      "title": "اختصارات لوحة المفاتيح",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "24-viora-watch.png",
+      "title": "Viora — مشاهدة الفيديو",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "25-viora-search.png",
+      "title": "Viora — البحث والاستكشاف",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "26-viora-settings.png",
+      "title": "Viora — الإعدادات",
+      "width": 3200,
+      "height": 2000
+    },
+    {
+      "file": "27-viora-library.png",
+      "title": "Viora — المكتبة",
+      "width": 3200,
+      "height": 2000
+    }
+  ],
+  "errors": []
+}

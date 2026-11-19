@@ -1,0 +1,22 @@
+{
+  "package": "artifacts\\reader-removed\\Labeeb-0.1.38-Windows-x64-store.msix",
+  "version": "0.1.38.0",
+  "identity": {
+    "name": "SHAYEALSHAYE.Labeeb",
+    "publisher": "CN=2F167EBB-10E2-43D6-9238-4B54D99054AB",
+    "publisherDisplayName": "SHAYE ALSHAYE",
+    "displayName": "Labeeb",
+    "storeId": "9N7MHHW7XG45"
+  },
+  "sha256": "3d1eca9ba1f1b30b94ef907363965a8c3fb29b63ce445879f1bd4189e8512e9f",
+  "bytes": 12072868,
+  "files": 353,
+  "makeappx": "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.26100.0\\x64\\makeappx.exe",
+  "schemaValidation": "passed",
+  "archiveIntegrity": "passed",
+  "executableHashMatchesPortable": true,
+  "signed": false,
+  "installedAppTest": "not run",
+  "storeCertification": "not submitted",
+  "webview2": "Evergreen Runtime required; not bundled in this MSIX"
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-reader-export"
+description = "Enables the reader_export command without any pre-configured scope."
+commands.allow = ["reader_export"]
+
+[[permission]]
+identifier = "deny-reader-export"
+description = "Denies the reader_export command without any pre-configured scope."
+commands.deny = ["reader_export"]

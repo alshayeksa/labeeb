@@ -1,1 +1,1 @@
-{"bundle":{"externalBin":["binaries/obscura"],"resources":{"binaries/WebView2Loader.dll":"WebView2Loader.dll"}}}
+{"bundle": {"resources": {"binaries/WebView2Loader.dll": "WebView2Loader.dll"}}}

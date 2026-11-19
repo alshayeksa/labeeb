@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-viora-choose"
+description = "Enables the viora_choose command without any pre-configured scope."
+commands.allow = ["viora_choose"]
+
+[[permission]]
+identifier = "deny-viora-choose"
+description = "Denies the viora_choose command without any pre-configured scope."
+commands.deny = ["viora_choose"]

@@ -1,0 +1,1 @@
+{"name":"labeeb-website","private":true,"type":"module","scripts":{"build":"node build.mjs","preview":"python -m http.server 1439 --bind 127.0.0.1 --directory dist"}}

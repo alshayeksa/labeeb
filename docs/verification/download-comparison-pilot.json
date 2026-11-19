@@ -1,0 +1,563 @@
+{
+  "environment": "Windows-10-10.0.26200-SP0",
+  "file_bytes": 33554432,
+  "file_sha256": "30f85fbf026437fbe2d4345f8999d707d9cff72a64f0cb3ebf284abf19a9b050",
+  "aria2_version": "aria2 version 1.37.0",
+  "production_source_sha256": "6b454483ac0e4476ebb0800b013db6c4fc986725a99b9b0f4d92932114599110",
+  "limitations": [
+    "Loopback HTTP, not internet, TLS, browser integration, or real authenticated downloads.",
+    "Production accelerator called directly: native fallback and adaptive handover delay excluded.",
+    "32 MiB deterministic payload; timings include process startup and probe, not final SHA-256.",
+    "Per-connection cap is a synthetic favorable scenario for segmentation, not a global network cap.",
+    "Distinct default retry and segment scheduling policies retained."
+  ],
+  "runs": [
+    {
+      "scenario": "uncapped",
+      "engine": "labeeb-8",
+      "run": 1,
+      "seconds": 0.665821100003086,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 0,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 6,
+        "sent": 33554433,
+        "requests": 33,
+        "range_requests": 33,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": ""
+    },
+    {
+      "scenario": "uncapped",
+      "engine": "aria2-8",
+      "run": 1,
+      "seconds": 0.08877490001032129,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 0,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 34275328,
+        "requests": 8,
+        "range_requests": 7,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": "\nDownload Results:\ngid   |stat|avg speed  |path/URI\n======+====+===========+=======================================================\nf268b3|OK  |   695MiB/s|D:/projects/labeeb/artifacts/download-comparison/uncapped-aria2-8-1.bin\n\nStatus Legend:\n(OK):download completed.\n"
+    },
+    {
+      "scenario": "uncapped",
+      "engine": "aria2-8",
+      "run": 2,
+      "seconds": 0.10952559998258948,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 0,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 34275328,
+        "requests": 8,
+        "range_requests": 7,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": "\nDownload Results:\ngid   |stat|avg speed  |path/URI\n======+====+===========+=======================================================\n604d13|OK  |   444MiB/s|D:/projects/labeeb/artifacts/download-comparison/uncapped-aria2-8-2.bin\n\nStatus Legend:\n(OK):download completed.\n"
+    },
+    {
+      "scenario": "uncapped",
+      "engine": "labeeb-8",
+      "run": 2,
+      "seconds": 0.518431700009387,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 0,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 6,
+        "sent": 33554433,
+        "requests": 33,
+        "range_requests": 33,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": ""
+    },
+    {
+      "scenario": "uncapped",
+      "engine": "labeeb-8",
+      "run": 3,
+      "seconds": 0.04204339999705553,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 0,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 7,
+        "sent": 33554433,
+        "requests": 33,
+        "range_requests": 33,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": ""
+    },
+    {
+      "scenario": "uncapped",
+      "engine": "aria2-8",
+      "run": 3,
+      "seconds": 0.09891509998124093,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 0,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 34471936,
+        "requests": 9,
+        "range_requests": 8,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": "\nDownload Results:\ngid   |stat|avg speed  |path/URI\n======+====+===========+=======================================================\n28eaa1|OK  |   492MiB/s|D:/projects/labeeb/artifacts/download-comparison/uncapped-aria2-8-3.bin\n\nStatus Legend:\n(OK):download completed.\n"
+    },
+    {
+      "scenario": "per_connection_2MiBps",
+      "engine": "labeeb-8",
+      "run": 1,
+      "seconds": 2.553800300025614,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 33554433,
+        "requests": 33,
+        "range_requests": 33,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": ""
+    },
+    {
+      "scenario": "per_connection_2MiBps",
+      "engine": "aria2-8",
+      "run": 1,
+      "seconds": 2.5764158999954816,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 33619968,
+        "requests": 8,
+        "range_requests": 7,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": "\r                                                                               \r[#929176 14MiB/32MiB(44%) CN:8 DL:14MiB ETA:1s]\r                                                                               \r[#929176 30MiB/32MiB(93%) CN:8 DL:15MiB]\nDownload Results:\ngid   |stat|avg speed  |path/URI\n======+====+===========+=======================================================\n929176|OK  |    12MiB/s|D:/projects/labeeb/artifacts/download-comparison/per_connection_2MiBps-aria2-8-1.bin\n\nStatus Legend:\n(OK):download completed.\n"
+    },
+    {
+      "scenario": "per_connection_2MiBps",
+      "engine": "labeeb-1",
+      "run": 1,
+      "seconds": 16.246517499996116,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 1,
+        "sent": 33554433,
+        "requests": 8,
+        "range_requests": 8,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": ""
+    },
+    {
+      "scenario": "per_connection_2MiBps",
+      "engine": "labeeb-1",
+      "run": 2,
+      "seconds": 16.299240799999097,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 1,
+        "sent": 33554433,
+        "requests": 8,
+        "range_requests": 8,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": ""
+    },
+    {
+      "scenario": "per_connection_2MiBps",
+      "engine": "aria2-8",
+      "run": 2,
+      "seconds": 2.0528097999922466,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 33619968,
+        "requests": 8,
+        "range_requests": 7,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": "\r                                                                               \r[#b1467a 15MiB/32MiB(46%) CN:8 DL:15MiB ETA:1s]\r                                                                               \r[#b1467a 30MiB/32MiB(96%) CN:8 DL:15MiB]\nDownload Results:\ngid   |stat|avg speed  |path/URI\n======+====+===========+=======================================================\nb1467a|OK  |    15MiB/s|D:/projects/labeeb/artifacts/download-comparison/per_connection_2MiBps-aria2-8-2.bin\n\nStatus Legend:\n(OK):download completed.\n"
+    },
+    {
+      "scenario": "per_connection_2MiBps",
+      "engine": "labeeb-8",
+      "run": 2,
+      "seconds": 2.554707499977667,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 33554433,
+        "requests": 33,
+        "range_requests": 33,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": ""
+    },
+    {
+      "scenario": "per_connection_2MiBps",
+      "engine": "labeeb-8",
+      "run": 3,
+      "seconds": 2.5648803999938536,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 33554433,
+        "requests": 33,
+        "range_requests": 33,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": ""
+    },
+    {
+      "scenario": "per_connection_2MiBps",
+      "engine": "aria2-8",
+      "run": 3,
+      "seconds": 2.0775500000163447,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 33619968,
+        "requests": 8,
+        "range_requests": 7,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": "\r                                                                               \r[#261496 15MiB/32MiB(46%) CN:8 DL:15MiB ETA:1s]\r                                                                               \r[#261496 30MiB/32MiB(96%) CN:8 DL:15MiB]\nDownload Results:\ngid   |stat|avg speed  |path/URI\n======+====+===========+=======================================================\n261496|OK  |    15MiB/s|D:/projects/labeeb/artifacts/download-comparison/per_connection_2MiBps-aria2-8-3.bin\n\nStatus Legend:\n(OK):download completed.\n"
+    },
+    {
+      "scenario": "per_connection_2MiBps",
+      "engine": "labeeb-1",
+      "run": 3,
+      "seconds": 16.28333389997715,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 1,
+        "sent": 33554433,
+        "requests": 8,
+        "range_requests": 8,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": ""
+    },
+    {
+      "scenario": "four_connection_drops",
+      "engine": "labeeb-8",
+      "run": 1,
+      "seconds": 2.557829400000628,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 33554433,
+        "requests": 37,
+        "range_requests": 37,
+        "rejections": 0,
+        "drops": 4
+      },
+      "log": ""
+    },
+    {
+      "scenario": "four_connection_drops",
+      "engine": "aria2-8",
+      "run": 1,
+      "seconds": 2.132460799999535,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 33554432,
+        "requests": 12,
+        "range_requests": 11,
+        "rejections": 0,
+        "drops": 4
+      },
+      "log": "\r                                                                               \r[#1b6df8 15MiB/32MiB(46%) CN:8 DL:15MiB ETA:1s]\r                                                                               \r[#1b6df8 30MiB/32MiB(93%) CN:8 DL:15MiB]\nDownload Results:\ngid   |stat|avg speed  |path/URI\n======+====+===========+=======================================================\n1b6df8|OK  |    15MiB/s|D:/projects/labeeb/artifacts/download-comparison/four_connection_drops-aria2-8-1.bin\n\nStatus Legend:\n(OK):download completed.\n"
+    },
+    {
+      "scenario": "four_connection_drops",
+      "engine": "aria2-8",
+      "run": 2,
+      "seconds": 2.0766105000220705,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 33554432,
+        "requests": 12,
+        "range_requests": 11,
+        "rejections": 0,
+        "drops": 4
+      },
+      "log": "\r                                                                               \r[#87b7ed 15MiB/32MiB(47%) CN:8 DL:15MiB ETA:1s]\r                                                                               \r[#87b7ed 30MiB/32MiB(96%) CN:8 DL:15MiB]\nDownload Results:\ngid   |stat|avg speed  |path/URI\n======+====+===========+=======================================================\n87b7ed|OK  |    15MiB/s|D:/projects/labeeb/artifacts/download-comparison/four_connection_drops-aria2-8-2.bin\n\nStatus Legend:\n(OK):download completed.\n"
+    },
+    {
+      "scenario": "four_connection_drops",
+      "engine": "labeeb-8",
+      "run": 2,
+      "seconds": 2.559857499989448,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 33554433,
+        "requests": 37,
+        "range_requests": 37,
+        "rejections": 0,
+        "drops": 4
+      },
+      "log": ""
+    },
+    {
+      "scenario": "four_connection_drops",
+      "engine": "labeeb-8",
+      "run": 3,
+      "seconds": 2.5677553999994416,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 33554433,
+        "requests": 37,
+        "range_requests": 37,
+        "rejections": 0,
+        "drops": 4
+      },
+      "log": ""
+    },
+    {
+      "scenario": "four_connection_drops",
+      "engine": "aria2-8",
+      "run": 3,
+      "seconds": 2.5893299999879673,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 2097152,
+        "ranges": true,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 8,
+        "sent": 33619968,
+        "requests": 13,
+        "range_requests": 12,
+        "rejections": 0,
+        "drops": 4
+      },
+      "log": "\r                                                                               \r[#4f8829 14MiB/32MiB(43%) CN:8 DL:14MiB ETA:1s]\r                                                                               \r[#4f8829 29MiB/32MiB(92%) CN:8 DL:15MiB]\nDownload Results:\ngid   |stat|avg speed  |path/URI\n======+====+===========+=======================================================\n4f8829|OK  |    12MiB/s|D:/projects/labeeb/artifacts/download-comparison/four_connection_drops-aria2-8-3.bin\n\nStatus Legend:\n(OK):download completed.\n"
+    },
+    {
+      "scenario": "no_ranges",
+      "engine": "labeeb-8",
+      "run": 1,
+      "seconds": 0.01421600001049228,
+      "exit_code": 2,
+      "sha256_ok": false,
+      "server": {
+        "rate": 0,
+        "ranges": false,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 1,
+        "sent": 393216,
+        "requests": 1,
+        "range_requests": 1,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": "Ranges unsupported: native browser fallback required\n"
+    },
+    {
+      "scenario": "no_ranges",
+      "engine": "aria2-8",
+      "run": 1,
+      "seconds": 0.12620989998686127,
+      "exit_code": 0,
+      "sha256_ok": true,
+      "server": {
+        "rate": 0,
+        "ranges": false,
+        "drops_left": 0,
+        "limit": 0,
+        "active": 0,
+        "peak": 4,
+        "sent": 34275328,
+        "requests": 8,
+        "range_requests": 7,
+        "rejections": 0,
+        "drops": 0
+      },
+      "log": "\n11/13 23:06:48 [ERROR] CUID#8 - Download aborted. URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\nException: [AbstractCommand.cc:351] errorCode=8 URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\n  -> [HttpResponse.cc:81] errorCode=8 Invalid range header. Request: 16777216-20971519/33554432, Response: 0-33554431/33554432\n\n11/13 23:06:48 [ERROR] CUID#9 - Download aborted. URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\nException: [AbstractCommand.cc:351] errorCode=8 URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\n  -> [HttpResponse.cc:81] errorCode=8 Invalid range header. Request: 8388608-12582911/33554432, Response: 0-33554431/33554432\n\n11/13 23:06:48 [ERROR] CUID#10 - Download aborted. URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\nException: [AbstractCommand.cc:351] errorCode=8 URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\n  -> [HttpResponse.cc:81] errorCode=8 Invalid range header. Request: 25165824-29360127/33554432, Response: 0-33554431/33554432\n\n11/13 23:06:48 [ERROR] CUID#11 - Download aborted. URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\nException: [AbstractCommand.cc:351] errorCode=8 URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\n  -> [HttpResponse.cc:81] errorCode=8 Invalid range header. Request: 4194304-8388607/33554432, Response: 0-33554431/33554432\n\n11/13 23:06:48 [ERROR] CUID#12 - Download aborted. URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\nException: [AbstractCommand.cc:351] errorCode=8 URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\n  -> [HttpResponse.cc:81] errorCode=8 Invalid range header. Request: 12582912-16777215/33554432, Response: 0-33554431/33554432\n\n11/13 23:06:48 [ERROR] CUID#13 - Download aborted. URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\nException: [AbstractCommand.cc:351] errorCode=8 URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\n  -> [HttpResponse.cc:81] errorCode=8 Invalid range header. Request: 20971520-25165823/33554432, Response: 0-33554431/33554432\n\n11/13 23:06:48 [ERROR] CUID#14 - Download aborted. URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\nException: [AbstractCommand.cc:351] errorCode=8 URI=http://127.0.0.1:50937/no_ranges-aria2-8-1\n  -> [HttpResponse.cc:81] errorCode=8 Invalid range header. Request: 29360128-33554431/33554432, Response: 0-33554431/33554432\n\nDownload Results:\ngid   |stat|avg speed  |path/URI\n======+====+===========+=======================================================\n8e4653|OK  |   355MiB/s|D:/projects/labeeb/artifacts/download-comparison/no_ranges-aria2-8-1.bin\n\nStatus Legend:\n(OK):download completed.\n"
+    }
+  ],
+  "restart": [
+    {
+      "engine": "labeeb-8",
+      "killed_after_seconds": 2,
+      "server_bytes_before_restart": 30539777,
+      "server_bytes_after_restart": 33554433,
+      "seconds_after_restart": 2.5715604000142775,
+      "aria2_control_file_present": false,
+      "exit_code": 0,
+      "sha256_ok": true
+    },
+    {
+      "engine": "aria2-8",
+      "killed_after_seconds": 2,
+      "server_bytes_before_restart": 32505856,
+      "server_bytes_after_restart": 17481728,
+      "seconds_after_restart": 1.596396899985848,
+      "aria2_control_file_present": true,
+      "exit_code": 0,
+      "sha256_ok": true
+    }
+  ],
+  "medians_seconds": {
+    "four_connection_drops": {
+      "aria2-8": 2.132460799999535,
+      "labeeb-8": 2.559857499989448
+    },
+    "no_ranges": {
+      "aria2-8": 0.12620989998686127,
+      "labeeb-8": 0.01421600001049228
+    },
+    "per_connection_2MiBps": {
+      "aria2-8": 2.0775500000163447,
+      "labeeb-1": 16.28333389997715,
+      "labeeb-8": 2.554707499977667
+    },
+    "uncapped": {
+      "aria2-8": 0.09891509998124093,
+      "labeeb-8": 0.518431700009387
+    }
+  }
+}

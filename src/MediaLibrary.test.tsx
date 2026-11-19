@@ -14,6 +14,18 @@ it('shows saved media and opens it by library id, not a supplied path',async()=>
   expect(run).toHaveBeenCalledWith('media_open',{id:'saved-1',folder:false});
   fireEvent.click(screen.getByRole('button',{name:'Open folder'}));
   expect(run).toHaveBeenCalledWith('media_open',{id:'saved-1',folder:true});
+  // Deleting asks first: nothing is removed until the named action is confirmed.
+  fireEvent.click(screen.getByRole('button',{name:'Delete Saved clip'}));
+  const dialog = screen.getByRole('alertdialog');
+  expect(dialog.textContent).toContain('Saved clip');
+  expect(dialog.textContent).toContain('Recycle Bin');
+  expect(run.mock.calls.some(([name])=>name==='media_delete')).toBe(false);
+  fireEvent.keyDown(document,{key:'Escape'});
+  expect(screen.queryByRole('alertdialog')).toBeNull();
+  expect(run.mock.calls.some(([name])=>name==='media_delete')).toBe(false);
+  fireEvent.click(screen.getByRole('button',{name:'Delete Saved clip'}));
+  fireEvent.click(screen.getByRole('button',{name:'Delete'}));
+  expect(run).toHaveBeenCalledWith('media_delete',{id:'saved-1'},'Moved to the Recycle Bin.');
   fireEvent.change(screen.getByRole('textbox',{name:'Search media'}),{target:{value:'missing'}});
   expect(screen.getByText('No matching media.')).toBeTruthy();
 });

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-viora-open"
+description = "Enables the viora_open command without any pre-configured scope."
+commands.allow = ["viora_open"]
+
+[[permission]]
+identifier = "deny-viora-open"
+description = "Denies the viora_open command without any pre-configured scope."
+commands.deny = ["viora_open"]

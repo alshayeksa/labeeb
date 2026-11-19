@@ -25,3 +25,9 @@ __pycache__/
 src-tauri/binaries/WebView2Loader.dll
 
 src-tauri/gen/
+
+# Viora-on-Tauri prototype: copied third-party build output and build products
+viora-tauri/app/
+viora-tauri/src-tauri/target/
+viora-tauri/src-tauri/gen/
+viora-tauri/tools/out/

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import MediaLibrary from "./MediaLibrary";
+import DownloadsList from "./DownloadsList";
 import { command } from "./bridge";
 import type { BrowserModel } from "./useBrowser";
 export function isYouTubeVideo(value: string) {
@@ -15,13 +16,8 @@ export default function VideoDownloads({ m, initialUrl }: { m: BrowserModel; ini
   const ar = m.locale === "ar", state = m.snapshot.video;
   const [url, setUrl] = useState(initialUrl), [quality, setQuality] = useState("720"), [folder, setFolder] = useState(""), [choosing, setChoosing] = useState(false);
   const text = (a: string, e: string) => ar ? a : e;
-  const labels: Record<string, string> = {
-    queued:text("في الانتظار", "Queued"), preparing:text("تجهيز أدوات التحميل…", "Preparing download tools…"),
-    running:text("جارٍ التحميل", "Downloading"), merging:text("تجهيز الملف النهائي", "Finishing file"),
-    completed:text("اكتمل", "Completed"), failed:text("تعذر التحميل", "Failed"), cancelled:text("أُلغي", "Cancelled"),
-  };
   const start = () => void m.run("video_start", {url, quality, folder:folder || null});
-  return <><MediaLibrary m={m}/><section className="video-downloads" aria-label={text("تحميل الفيديو", "Video downloads")}>
+  return <><DownloadsList m={m}/><MediaLibrary m={m}/><section className="video-downloads" aria-label={text("تحميل الفيديو", "Video downloads")}>
     <details open={initialUrl ? true : undefined}><summary>{text("إضافة رابط تحميل", "Add a download link")}</summary>
     <p className="field-hint">{text("فيديو واحد في كل مرة للحفاظ على خفة التصفح. الأدوات تُجهّز عند أول استخدام وقد يستغرق ذلك بضع دقائق.", "One download at a time to keep browsing light. Tools are prepared on first use; this may take a few minutes.")}</p>
     <form onSubmit={e => {e.preventDefault(); start();}} className="video-form">
@@ -38,18 +34,5 @@ export default function VideoDownloads({ m, initialUrl }: { m: BrowserModel; ini
     </form>
     <p className="field-hint">{text("الجودة حتى الحد المختار حسب المتاح. قوائم التشغيل والبث المباشر غير مدعومة حاليًا.", "Quality up to the selected limit, when available. Playlists and live streams are not supported yet.")}</p>
     </details>
-    <div className="saved-list">{state?.jobs.filter(j=>j.status !== "completed").map(j => {
-      const active = !["completed", "failed", "cancelled"].includes(j.status);
-      return <article className="download-row" key={j.id}>
-        <div className="download-info"><strong dir="auto">{j.title}</strong>
-          <span>{labels[j.status] ?? j.status} · {j.quality === "audio" ? "M4A" : `${j.quality}p`}</span>
-          {["running", "merging"].includes(j.status) && <><progress aria-label={text("تقدم تحميل الفيديو", "Video download progress")} value={j.percent} max={100}/><span dir="ltr">{Math.round(j.percent)}% · {j.speed === "NA" ? "" : j.speed} · {j.eta === "NA" ? "" : j.eta}</span></>}
-          <span dir="auto">{j.folder}</span>{j.error && <p role="status">{j.error}</p>}
-          {j.status === "preparing" && <p className="field-hint">{text("تنزيل الأدوات والتحقق من سلامتها. يمكنك متابعة التصفح.", "Downloading and verifying tools. You can continue browsing.")}</p>}
-        </div>
-        {active ? <button className="button" disabled={m.busy} onClick={() => void m.run("video_cancel", {id:j.id})}>{text("إلغاء", "Cancel")}</button>
-          : j.status !== "completed" && <button className="button" disabled={m.busy} onClick={() => void m.run("video_start", {url:j.url, quality:j.quality, folder:j.folder})}>{text("إعادة المحاولة", "Retry")}</button>}
-      </article>;
-    })}</div>
   </section></>;
 }

@@ -2,6 +2,18 @@ import { describe, expect, it } from "vitest";
 import { addressSuggestions } from "./addressSuggestions";
 const page = (url:string, title = "Page", id = 1) => ({id,url,title});
 describe("local address suggestions", () => {
+  it("can match an older title of the same URL before deduplication", () => {
+    const history=[page("https://example.com/", "Current title"),page("https://example.com/", "Old title")];
+    expect(addressSuggestions("old",history,[]).map(row=>row.title)).toEqual(["Old title"]);
+    expect(addressSuggestions("",history,[]).map(row=>row.title)).toEqual(["Current title"]);
+  });
+  it("invalidates cached data when bookmarks or history are replaced", () => {
+    const history=[page("https://example.com/", "Original")], bookmarks:typeof history=[];
+    expect(addressSuggestions("original",history,bookmarks)[0].bookmarked).toBe(false);
+    expect(addressSuggestions("original",history,[...history])[0].bookmarked).toBe(true);
+    expect(addressSuggestions("original",[{...history[0],title:"Changed"}],bookmarks)).toEqual([]);
+    expect(addressSuggestions("changed",[{...history[0],title:"Changed"}],bookmarks)[0].title).toBe("Changed");
+  });
   it("deduplicates visits and ranks hostname prefixes before title matches", () => {
     const rows = addressSuggestions("reef", [page("https://other.test/", "Reefi article"), page("https://reefi.me/"), page("https://reefi.me/")], [page("https://reefi.me/")]);
     expect(rows.map(x=>x.url)).toEqual(["https://reefi.me/", "https://other.test/"]);

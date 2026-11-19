@@ -17,6 +17,10 @@
         const id = local.searchParams.get('v') || (['shorts','embed','live'].includes(parts[0]) ? parts[1] : '');
         if (/^[\w-]{11}$/.test(id || '')) return 'https://www.youtube.com/watch?v=' + id;
       }
+      if (local.hostname === 'www.youtube.com' && local.pathname.startsWith('/__viora/')) {
+        const watch = /^#\/watch\/([\w-]{11})(?:[/?]|$)/.exec(local.hash);
+        return watch ? 'https://www.youtube.com/watch?v=' + watch[1] : '';
+      }
       const raw = video.currentSrc || video.src || video.querySelector('source')?.src;
       try { const u = new URL(raw); return u.protocol === 'https:' && !/\.(m3u8|mpd)$/i.test(u.pathname) && !u.username && !u.password ? u.href : ''; } catch { return ''; }
     };
@@ -62,6 +66,7 @@
     document.addEventListener('visibilitychange', schedule);
     document.addEventListener('yt-navigate-finish', scan);
     window.addEventListener('popstate', scan);
+    window.addEventListener('hashchange', schedule);
     window.addEventListener('scroll', schedule, {capture:true, passive:true});
     window.addEventListener('resize', schedule, {passive:true});
     scan();

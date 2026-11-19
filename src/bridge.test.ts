@@ -1,6 +1,28 @@
 import { describe, it, expect } from "vitest";
-import { completeAddress, nextZoom, normalizeAddress, safeFrame, historyDate, utf8Length } from "./bridge";
-import { dictionaries, approvalSummaryKeys } from "./i18n";
+import { completeAddress, displayAddress, nextZoom, normalizeAddress, readSearchEngine, saveSearchEngine, safeFrame, historyDate, utf8Length } from "./bridge";
+import { dictionaries } from "./i18n";
+describe("search engine choice", () => {
+  it("uses the chosen engine for phrases only and falls back to the default", () => {
+    localStorage.clear();
+    expect(readSearchEngine()).toBe("google");
+    expect(normalizeAddress("best browser", "duckduckgo")).toBe("https://duckduckgo.com/?q=best%20browser");
+    expect(normalizeAddress("example.com", "bing")).toBe("https://example.com/");
+    saveSearchEngine("bing");
+    expect(normalizeAddress("best browser")).toBe("https://www.bing.com/search?q=best%20browser");
+    localStorage.setItem("labeeb.search", "https://evil.test/?q=");
+    expect(readSearchEngine()).toBe("google");
+    localStorage.clear();
+  });
+});
+describe("Viora addresses", () => {
+  it("shows a short form and turns it back into the served address", () => {
+    expect(displayAddress("https://www.youtube.com/__viora/index.html#/watch/BaW_jenozKc")).toBe("viora:/watch/BaW_jenozKc");
+    expect(displayAddress("https://www.youtube.com/__viora/index.html")).toBe("viora:/");
+    expect(displayAddress("https://www.youtube.com/watch?v=BaW_jenozKc")).toBe("https://www.youtube.com/watch?v=BaW_jenozKc");
+    expect(normalizeAddress("viora:/watch/BaW_jenozKc")).toBe("https://www.youtube.com/__viora/index.html#/watch/BaW_jenozKc");
+    expect(normalizeAddress("viora:")).toBe("https://www.youtube.com/__viora/index.html");
+  });
+});
 describe("address boundary", () => {
   it("normalizes websites and search", () => {
     expect(normalizeAddress("example.com")).toBe("https://example.com/");
@@ -42,9 +64,6 @@ describe("localization", () => {
     for (const locale of Object.values(dictionaries))
       for (const text of Object.values(locale))
         expect(text.trim()).not.toBe("");
-    expect(approvalSummaryKeys["Remove this bookmark"]).toBe(
-      "approveBookmarkRemove",
-    );
   });
   it("converts SQLite seconds rather than milliseconds", () => {
     expect(historyDate(1794528000, "en-US")).toBe(

@@ -32,7 +32,7 @@ pub fn youtube_url(input: &str) -> Result<String> {
 pub struct Job {
     pub id: String, pub url: String, pub title: String, pub quality: String,
     pub status: String, pub percent: f64, pub speed: String, pub eta: String,
-    pub folder: String, pub error: Option<String>,
+    pub folder: String, pub error: Option<String>, pub started_ms: u64,
     #[serde(skip)] cancel: Arc<AtomicBool>,
     #[serde(skip)] pid: Arc<AtomicU32>,
 }
@@ -56,6 +56,15 @@ impl VideoManager {
         if j.status == "queued" { j.status = "cancelled".into(); }
         Ok(())
     }
+    /// Removes one finished job from the list; returns whether the id was a job.
+    pub fn dismiss(&self, id: &str) -> bool {
+        let mut jobs = self.jobs.lock().unwrap();
+        let known = jobs.iter().any(|j| j.id == id);
+        jobs.retain(|j| j.id != id || !terminal(&j.status));
+        known
+    }
+    /// Removes every finished, failed and cancelled job from the list.
+    pub fn clear_finished(&self) { self.jobs.lock().unwrap().retain(|j| !terminal(&j.status)); }
     pub fn stop(&self) {
         for j in self.jobs.lock().unwrap().iter() {
             j.cancel.store(true, Ordering::Relaxed);
@@ -73,7 +82,7 @@ impl VideoManager {
         let folder = folder.filter(|s| !s.trim().is_empty()).map(PathBuf::from).unwrap_or_else(|| self.default_folder.clone());
         if !folder.is_absolute() { return Err("اختر مسار مجلد كامل".into()); }
         let job = Job { id:uuid::Uuid::new_v4().to_string(), title:url.clone(), url, quality:quality.into(),
-            status:"queued".into(), percent:0., speed:String::new(), eta:String::new(), folder:folder.to_string_lossy().into(), error:None, cancel:Arc::new(AtomicBool::new(false)), pid:Arc::new(AtomicU32::new(0)) };
+            status:"queued".into(), percent:0., speed:String::new(), eta:String::new(), folder:folder.to_string_lossy().into(), error:None, started_ms:std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0), cancel:Arc::new(AtomicBool::new(false)), pid:Arc::new(AtomicU32::new(0)) };
         {
             let mut jobs = self.jobs.lock().unwrap();
             if jobs.iter().filter(|j| !terminal(&j.status)).count() >= 10 { return Err("قائمة الانتظار ممتلئة (10 فيديوهات)".into()); }
@@ -133,7 +142,7 @@ impl VideoManager {
                         let f = std::fs::File::open(archive_path).map_err(|_| "تعذر فتح الأدوات")?;
                         let mut zip = zip::ZipArchive::new(f).map_err(|_| "أرشيف أدوات غير صالح")?;
                         for i in 0..zip.len() { let mut entry = zip.by_index(i).map_err(|_| "أرشيف غير صالح")?;
-                            if entry.name().ends_with("/bin/ffmpeg.exe") && entry.size() < 200 * 1024 * 1024 {
+                            if entry.name().is_ok_and(|name| name.ends_with("/bin/ffmpeg.exe")) && entry.size() < 200 * 1024 * 1024 {
                                 let mut out = std::fs::File::create(&output).map_err(|_| "تعذر استخراج الأدوات")?;
                                 std::io::copy(&mut entry, &mut out).map_err(|_| "تعذر استخراج الأدوات")?; return Ok(());
                             }
@@ -163,10 +172,10 @@ impl VideoManager {
     }
     async fn download(&self, job: &Job, temp: &Path, destination: &Path) -> Result<()> {
         let mut cmd = tokio::process::Command::new(self.tools.join("yt-dlp.exe"));
-        cmd.args(["--encoding", "utf-8", "--ignore-config", "--no-playlist", "--no-color", "--newline", "--no-overwrites", "--no-simulate", "--no-cache-dir",
+        cmd.args(["--encoding", "utf-8", "--ignore-config", "--no-playlist", "--no-color", "--newline", "--progress", "--no-overwrites", "--no-simulate", "--no-cache-dir",
             "--match-filter", "!is_live", "--socket-timeout", "20", "--retries", "2", "--fragment-retries", "2", "--concurrent-fragments", "1", "--progress-delta", "0.5",
             "--progress-template", "download:LABEEB|%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s",
-            "--print", "before_dl:LABEEB_TITLE|%(title)s", "--js-runtimes"])
+            "--print", "before_dl:LABEEB_TITLE|%(title)s", "--print", "post_process:LABEEB_PROCESSING|%(id)s", "--js-runtimes"])
             .arg(format!("node:{}", self.tools.join("node.exe").display())).arg("--ffmpeg-location").arg(&self.tools);
         if job.quality == "audio" { cmd.args(["-f", "bestaudio[ext=m4a]/bestaudio", "-x", "--audio-format", "m4a"]); }
         else { cmd.args(["-f", &format!("bv[height<={}][ext=mp4]+ba[ext=m4a]/b[height<={}][ext=mp4]", job.quality, job.quality), "--merge-output-format", "mp4"]); }
@@ -182,14 +191,24 @@ impl VideoManager {
         let mut err_lines = BufReader::new(child.stderr.take().unwrap()).lines();
         let mut stdout_open = true; let mut stderr_open = true; let mut failure = String::new();
         let mut tick = tokio::time::interval(std::time::Duration::from_millis(200));
+        let mut watchdog_tick = tokio::time::interval(std::time::Duration::from_secs(5));
+        let mut watchdog = DownloadWatchdog::new(std::time::Instant::now());
+        let mut processing = false;
         let status = loop {
             tokio::select! {
                 line = lines.next_line(), if stdout_open => match line {
-                    Ok(Some(line)) => self.update(&job.id, |j| apply_line(j, &line)),
+                    Ok(Some(line)) => {
+                        processing |= line.starts_with("LABEEB_PROCESSING|");
+                        self.update(&job.id, |j| apply_line(j, &line));
+                    },
                     _ => stdout_open = false,
                 },
                 line = err_lines.next_line(), if stderr_open => match line {
-                    Ok(Some(line)) => { failure = line.chars().take(2000).collect(); },
+                    Ok(Some(line)) => {
+                        // yt-dlp can emit progress on stderr, especially with --print.
+                        self.update(&job.id, |j| apply_line(j, &line));
+                        remember_failure(&mut failure, &line);
+                    },
                     _ => stderr_open = false,
                 },
                 _ = tick.tick() => {
@@ -199,13 +218,31 @@ impl VideoManager {
                     }
                     if let Some(status) = child.try_wait().map_err(|_| "تعذر متابعة التحميل")? { break status; }
                 }
+                _ = watchdog_tick.tick() => {
+                    // Observe actual file growth, not retry messages. One stalled job
+                    // must not hold the single-download queue indefinitely.
+                    let now = std::time::Instant::now();
+                    if let Ok(bytes) = download_bytes(temp).await { watchdog.observe(bytes, now); }
+                    if watchdog.stalled(now, processing) {
+                        kill_tree(&mut child).await;
+                        return Err("توقف نقل بيانات الفيديو لمدة طويلة؛ تحقق من الاتصال ثم أعد المحاولة. ستتابع بقية التنزيلات تلقائيًا".into());
+                    }
+                }
             }
         };
+        // Process exit can win the select before the final error is read. Drain
+        // stderr, with a deadline in case a descendant still owns the pipe.
+        let _ = tokio::time::timeout(std::time::Duration::from_secs(2), async {
+            while let Ok(Some(line)) = err_lines.next_line().await {
+                remember_failure(&mut failure, &line);
+            }
+        }).await;
         if !status.success() {
-            return Err(if failure.contains("Sign in") || failure.contains("bot") { "يطلب يوتيوب التحقق أو تسجيل الدخول؛ هذا الفيديو غير متاح للتحميل حاليًا" }
+            let message = if failure.contains("Sign in") || failure.contains("bot") { "يطلب يوتيوب التحقق أو تسجيل الدخول؛ هذا الفيديو غير متاح للتحميل حاليًا" }
                 else if failure.contains("format") { "الجودة المطلوبة غير متاحة لهذا الفيديو" }
                 else if failure.contains("space") { "مساحة القرص غير كافية" }
-                else { "تعذر تحميل الفيديو؛ تحقق من الاتصال وإتاحة الفيديو ثم أعد المحاولة" }.into());
+                else { "تعذر تحميل الفيديو؛ تحقق من الاتصال وإتاحة الفيديو ثم أعد المحاولة" };
+            return Err(message.into());
         }
         let ext = if job.quality == "audio" { "m4a" } else { "mp4" };
         let source = temp.join(format!("video.{ext}"));
@@ -226,6 +263,13 @@ impl VideoManager {
 }
 async fn cancelled(job: &Job) { while !job.cancel.load(Ordering::Relaxed) { tokio::time::sleep(std::time::Duration::from_millis(200)).await; } }
 pub fn terminal(s: &str) -> bool { matches!(s, "completed" | "failed" | "cancelled") }
+fn remember_failure(failure: &mut String, line: &str) {
+    let line = line.trim();
+    if line.is_empty() || line.starts_with("LABEEB|") { return; }
+    // Preserve a real error over trailing warnings or informational messages.
+    if failure.starts_with("ERROR:") && !line.starts_with("ERROR:") { return; }
+    *failure = line.chars().filter(|c| !c.is_control()).take(2000).collect();
+}
 fn safe_title(s: &str) -> String {
     let name: String = s.chars().map(|c| if c.is_control() || "<>:\"/\\|?*%".contains(c) { '_' } else { c }).take(100).collect();
     let name = name.trim_matches([' ', '.']); if name.is_empty() { "Video".into() } else { name.into() }
@@ -236,7 +280,26 @@ fn apply_line(j: &mut Job, line: &str) {
         let values: Vec<_> = data.split('|').collect();
         if values.len() == 3 { if let Ok(p) = values[0].trim().trim_end_matches('%').parse::<f64>() { if p.is_finite() { j.percent = p.clamp(0., 100.); } }
             j.speed = values[1].chars().take(30).collect(); j.eta = values[2].chars().take(30).collect(); }
-    } else if line.starts_with("[Merger]") || line.starts_with("[ExtractAudio]") { j.status = "merging".into(); }
+    } else if line.starts_with("LABEEB_PROCESSING|") || line.starts_with("[Merger]") || line.starts_with("[ExtractAudio]") { j.status = "merging".into(); }
+}
+struct DownloadWatchdog { bytes: u64, last_growth: std::time::Instant }
+impl DownloadWatchdog {
+    fn new(now: std::time::Instant) -> Self { Self { bytes: 0, last_growth: now } }
+    fn observe(&mut self, bytes: u64, now: std::time::Instant) {
+        if bytes != self.bytes { self.bytes = bytes; self.last_growth = now; }
+    }
+    fn stalled(&self, now: std::time::Instant, processing: bool) -> bool {
+        now.duration_since(self.last_growth) >= std::time::Duration::from_secs(if processing { 600 } else { 180 })
+    }
+}
+async fn download_bytes(folder: &Path) -> std::io::Result<u64> {
+    let mut entries = tokio::fs::read_dir(folder).await?;
+    let mut total = 0u64;
+    while let Some(entry) = entries.next_entry().await? {
+        let meta = entry.metadata().await?;
+        if meta.is_file() { total = total.saturating_add(meta.len()); }
+    }
+    Ok(total)
 }
 pub(crate) async fn verified(path: &Path, hash: &str) -> bool {
     let Ok(mut file) = tokio::fs::File::open(path).await else { return false; };
@@ -255,6 +318,36 @@ async fn kill_tree(child: &mut tokio::process::Child) {
 
 #[cfg(test)] mod tests {
     use super::*;
+    #[test] fn diagnostics_preserve_errors_over_progress_and_warnings() {
+        let mut error = String::new();
+        remember_failure(&mut error, "ERROR: Permission denied");
+        remember_failure(&mut error, "LABEEB|100%|NA|NA");
+        remember_failure(&mut error, "WARNING: trailing warning");
+        assert_eq!(error, "ERROR: Permission denied");
+        remember_failure(&mut error, &format!("ERROR: {}", "x".repeat(4000)));
+        assert_eq!(error.len(), 2000);
+    }
+    #[test] fn stalled_downloads_are_bounded_but_growth_and_merging_get_time() {
+        use std::time::{Duration, Instant};
+        let now = Instant::now(); let mut watch = DownloadWatchdog::new(now);
+        watch.observe(0, now + Duration::from_secs(170));
+        assert!(watch.stalled(now + Duration::from_secs(180), false));
+        assert!(!watch.stalled(now + Duration::from_secs(180), true));
+        watch.observe(1024, now + Duration::from_secs(181));
+        assert!(!watch.stalled(now + Duration::from_secs(300), false));
+        assert!(watch.stalled(now + Duration::from_secs(781), true));
+    }
+    #[tokio::test] async fn progress_and_postprocessing_markers_update_the_job() {
+        let dir = tempfile::tempdir().unwrap();
+        let manager = VideoManager::new(dir.path().join("tools"), dir.path().join("videos"));
+        let _gate = manager.gate.acquire().await.unwrap();
+        manager.start("https://youtu.be/BaW_jenozKc", "720", None).unwrap();
+        let mut job = manager.jobs.lock().unwrap()[0].clone();
+        apply_line(&mut job, "LABEEB| 42.5%|2MiB/s|00:12");
+        assert_eq!(job.percent, 42.5); assert_eq!(job.speed, "2MiB/s"); assert_eq!(job.eta, "00:12");
+        apply_line(&mut job, "LABEEB_PROCESSING|BaW_jenozKc"); assert_eq!(job.status, "merging");
+        manager.cancel(&job.id).unwrap();
+    }
     #[test] fn canonical_video_urls() {
         for u in ["https://youtu.be/BaW_jenozKc?t=3", "https://www.youtube.com/watch?v=BaW_jenozKc&list=abc", "https://m.youtube.com/shorts/BaW_jenozKc"] {
             assert_eq!(youtube_url(u).unwrap(), "https://www.youtube.com/watch?v=BaW_jenozKc");
@@ -276,6 +369,10 @@ async fn kill_tree(child: &mut tokio::process::Child) {
         let id = manager.jobs.lock().unwrap()[0].id.clone();
         manager.cancel(&id).unwrap();
         assert_eq!(manager.snapshot()["jobs"][0]["status"], "cancelled");
+        assert!(manager.snapshot()["jobs"][0]["startedMs"].as_u64().unwrap() > 0);
+        assert!(!manager.dismiss("unknown"));
+        assert!(manager.dismiss(&id));
+        assert!(manager.snapshot()["jobs"].as_array().unwrap().is_empty());
         assert!(!dir.path().join("tools").exists());
     }
     #[tokio::test] #[ignore = "Requires network and verified Viora tools via LABEEB_VIDEO_TEST_TOOLS"]

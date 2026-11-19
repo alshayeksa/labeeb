@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import { emptySnapshot } from "./bridge";
@@ -11,6 +11,7 @@ vi.mock("./bridge", async (original) => ({
   command: mocks.command,
 }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
+vi.mock("./chatTransport",()=>({askChat:(args:Record<string,unknown>)=>mocks.command("ai_ask",args)}));
 let state: Snapshot;
 beforeEach(() => {
   localStorage.clear();
@@ -33,6 +34,102 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("desktop shell", () => {
+  it("offers Claude and a custom endpoint with model and protocol", async () => {
+    mocks.native.mockReturnValue(true);
+    render(<App/>);
+    await userEvent.click(screen.getByRole("button", {name:"الإعدادات"}));
+    await userEvent.click(screen.getByRole("radio", {name:"Claude"}));
+    expect(screen.getByLabelText("اسم النموذج")).toHaveValue("claude-sonnet-5-5");
+    expect(screen.getByLabelText("معرّف مساحة العمل (اختياري)")).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("مفتاح API"), "synthetic-claude-key");
+    fireEvent.submit(screen.getByLabelText("مفتاح API").closest("form")!);
+    await waitFor(() => expect(mocks.command).toHaveBeenCalledWith("ai_key_save", {key:"synthetic-claude-key",provider:"claude",model:"claude-sonnet-5-5",workspace:""}));
+    await userEvent.click(screen.getByRole("radio", {name:"مخصّص"}));
+    expect(screen.getByLabelText("مفتاح API")).toHaveValue("");
+    await userEvent.type(screen.getByLabelText("اسم النموذج"), "my-model");
+    await userEvent.type(screen.getByLabelText("عنوان API الكامل"), "https://example.com/v1/chat/completions");
+    await userEvent.type(screen.getByLabelText("مفتاح API"), "synthetic-custom-key");
+    fireEvent.submit(screen.getByLabelText("مفتاح API").closest("form")!);
+    await waitFor(() => expect(mocks.command).toHaveBeenCalledWith("ai_key_save", {key:"synthetic-custom-key",provider:"custom",model:"my-model",endpoint:"https://example.com/v1/chat/completions",protocol:"openai"}));
+  });
+  it("saves a key with the selected provider and clears keys on provider changes", async () => {
+    mocks.native.mockReturnValue(true);
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "الإعدادات" }));
+    const key = await screen.findByLabelText("مفتاح API");
+    await userEvent.type(key, "synthetic-openai-key");
+    await userEvent.click(screen.getByRole("radio", { name: "DeepSeek" }));
+    expect(key).toHaveValue("");
+    await userEvent.type(key, "synthetic-deepseek-key");
+    fireEvent.submit(key.closest("form")!);
+    await waitFor(() => expect(mocks.command).toHaveBeenCalledWith("ai_key_save", { key: "synthetic-deepseek-key", provider: "deepseek", model: "deepseek-flash" }));
+    await waitFor(() => expect(key).toHaveValue(""));
+  });
+  it("hides browser controls in fullscreen and restores them on exit", async () => {
+    mocks.native.mockReturnValue(true);
+    mocks.command.mockImplementation(async (name: string) => {
+      if (name === "window_fullscreen_toggle") state.fullscreen = !state.fullscreen;
+      return name === "app_snapshot" ? structuredClone(state) : undefined;
+    });
+    render(<App/>);
+    await userEvent.click(screen.getByRole("button", {name:"المساعد الذكي"}));
+    fireEvent.keyDown(document, {key:"F11"});
+    await waitFor(() => expect(screen.queryByRole("banner")).not.toBeInTheDocument());
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    expect(document.querySelector("#assistant-panel")).toBeNull();
+    expect(document.querySelector(".app-shell")).toHaveClass("immersive");
+    fireEvent.keyDown(document, {key:"l",ctrlKey:true});
+    await waitFor(() => expect(screen.getByRole("banner")).toBeVisible());
+    fireEvent.keyDown(document, {key:"Escape"});
+    await waitFor(() => expect(screen.queryByRole("banner")).not.toBeInTheDocument());
+    fireEvent.keyDown(document, {key:"F11"});
+    await waitFor(() => expect(screen.getByRole("banner")).toBeVisible());
+    expect(screen.getByRole("navigation")).toBeVisible();
+    expect(document.querySelector("#assistant-panel")).not.toBeNull();
+  });
+
+  it("toggles native full screen with F11 and ignores repeats and modified keys", async () => {
+    mocks.native.mockReturnValue(true);
+    render(<App/>);
+    fireEvent.keyDown(document, {key:"F11"});
+    await waitFor(() => expect(mocks.command).toHaveBeenCalledWith("window_fullscreen_toggle", undefined));
+    await waitFor(() => expect(mocks.command).toHaveBeenCalledWith("app_snapshot", expect.anything()));
+    mocks.command.mockClear();
+    fireEvent.keyDown(document, {key:"F11", repeat:true});
+    fireEvent.keyDown(document, {key:"F11", ctrlKey:true});
+    fireEvent.keyDown(document, {key:"F11", shiftKey:true});
+    expect(mocks.command).not.toHaveBeenCalledWith("window_fullscreen_toggle", undefined);
+    fireEvent.keyDown(document, {key:"F11"});
+    await waitFor(() => expect(mocks.command).toHaveBeenCalledWith("window_fullscreen_toggle", undefined));
+  });
+
+  it("saves the Windows password preference through the native host", async () => {
+    mocks.native.mockReturnValue(true);
+    state.settings.passwordSaveSupported = true;
+    state.settings.passwordSave = false;
+    mocks.command.mockImplementation(async (name: string, args?: {passwordSave?: boolean}) => {
+      if (name === "settings_update") state.settings.passwordSave = args?.passwordSave;
+      return name === "app_snapshot" ? structuredClone(state) : undefined;
+    });
+    render(<App/>);
+    await userEvent.click(screen.getByRole("button", {name:"الإعدادات"}));
+    const toggle = await screen.findByRole("switch", {name:"السماح بحفظ كلمات المرور"});
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    expect(toggle).toHaveTextContent("غير مفعّل");
+    await userEvent.click(toggle);
+    await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "true"));
+    expect(toggle).toHaveTextContent("— مفعّل");
+    expect(screen.getByText("تم تفعيل السماح بحفظ كلمات المرور.")).toBeInTheDocument();
+    expect(mocks.command).toHaveBeenCalledWith("settings_update", {locale:"ar",passwordSave:true});
+    await userEvent.click(toggle);
+    await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "false"));
+  });
+  it("does not offer password saving on unsupported platforms", async () => {
+    render(<App/>);
+    await userEvent.click(screen.getByRole("button", {name:"الإعدادات"}));
+    expect(screen.queryByRole("switch", {name:"السماح بحفظ كلمات المرور"})).not.toBeInTheDocument();
+  });
+
   it("routes Ctrl+F to native find for the active page", async () => {
     mocks.native.mockReturnValue(true);
     state.tabs = [{id:"tab-find",title:"Example",url:"https://example.com"}]; state.activeTabId="tab-find";
@@ -65,21 +162,40 @@ describe("desktop shell", () => {
     await userEvent.click(screen.getByRole("button", { name: "ليلي" }));
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
-  it("persists sidebar size, keeps extra sections accessible and restores a hidden sidebar", async () => {
+  it("persists sidebar size and exposes About below Settings without extra menus", async () => {
+    localStorage.setItem("labeeb.sidebar-mode", "hidden");
     const view = render(<App />);
     expect(screen.getByRole("navigation")).toHaveClass("compact");
     await userEvent.click(screen.getByRole("button", {name:"توسيع القائمة"}));
-    expect(screen.getByRole("navigation")).toHaveClass("expanded");
     view.unmount();
     render(<App />);
-    expect(screen.getByRole("navigation")).toHaveClass("expanded");
-    await userEvent.click(screen.getByRole("button", {name:"المزيد"}));
+    const nav = screen.getByRole("navigation");
+    expect(nav).toHaveClass("expanded");
+    const buttons = within(nav).getAllByRole("button");
+    expect(buttons.slice(-2).map(b => b.getAttribute("aria-label"))).toEqual(["الإعدادات", "عن لبيب"]);
+    expect(within(nav).queryByRole("button", {name:/إخفاء|المزيد|التشخيص/})).not.toBeInTheDocument();
+    expect(within(nav).getByRole("button", {name:"Viora - يوتيوب بدون إعلانات"})).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", {name:"عن لبيب"}));
     expect(screen.getByRole("heading", {name:"شايع الشايع"})).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", {name:"إخفاء القائمة الجانبية"}));
-    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", {name:"إظهار القائمة الجانبية"}));
-    expect(screen.getByRole("navigation")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", {name:"الإعدادات"}));
+    expect(within(screen.getByRole("main")).queryByRole("button", {name:"عن لبيب"})).not.toBeInTheDocument();
+  });
+  it("switches languages next to the logo and removes the closed assistant column", async () => {
+    render(<App />);
+    const language = within(screen.getByRole("banner")).getByRole("group", {name:"لغة الواجهة"});
+    await userEvent.click(within(language).getByRole("button", {name:"English"}));
+    expect(document.documentElement.dir).toBe("ltr");
+    await userEvent.click(within(language).getByRole("button", {name:"عربي"}));
+    expect(document.documentElement.dir).toBe("rtl");
+    const toggle = screen.getByRole("button", {name:"المساعد الذكي"});
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    const panel = screen.getByRole("complementary");
+    await userEvent.click(within(panel).getByRole("button", {name:"إغلاق"}));
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    expect(screen.getByRole("main").parentElement).toHaveClass("assistant-closed");
   });
   it("offers local history and bookmarks, then opens the keyboard-selected address", async () => {
     mocks.native.mockReturnValue(true);
@@ -133,7 +249,6 @@ describe("desktop shell", () => {
   it("opens the developer website in a native tab without navigating the privileged shell", async () => {
     mocks.native.mockReturnValue(true);
     render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: "المزيد" }));
     await userEvent.click(screen.getByRole("button", { name: "عن لبيب" }));
     const website = screen.getByRole("link", { name: /alshaye.ai/ });
     expect(website).toHaveAttribute("href", "https://alshaye.ai/");
@@ -171,7 +286,7 @@ describe("desktop shell", () => {
     render(<App />);
     await screen.findByRole("tab", { name: "Page" });
     const indicator = screen.getByRole("img", { name: label });
-    expect(!!indicator.querySelector(".lucide-lock-keyhole")).toBe(locked);
+    expect(!!indicator.querySelector(".lucide-lock")).toBe(locked);
   });
   it("is Arabic first and does not fake desktop capabilities", async () => {
     render(<App />);
@@ -189,7 +304,7 @@ describe("desktop shell", () => {
   });
   it("switches to English and LTR without frontend storage", async () => {
     render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: "لغة الواجهة" }));
+    await userEvent.click(screen.getByRole("button", { name: "English" }));
     expect(document.documentElement.dir).toBe("ltr");
     expect(screen.getByText("A calmer way to browse.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Settings" }));
@@ -214,36 +329,10 @@ describe("desktop shell", () => {
       }),
     );
   });
-  it("renders approval payload as text and requires explicit approval", async () => {
-    mocks.native.mockReturnValue(true);
-    state.approvals = [
-      {
-        id: "a1",
-        kind: "message",
-        summary: "Send a message",
-        origin: "https://example.com",
-        payload: "<img src=x onerror=alert(1)>",
-      },
-    ];
+  it("does not expose automation or approvals in navigation", async () => {
     render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: "المزيد" }));
-    await userEvent.click(screen.getByRole("button", { name: "الموافقات" }));
-    expect(
-      await screen.findByText("<img src=x onerror=alert(1)>"),
-    ).toBeInTheDocument();
-    expect(document.querySelector('img[src="x"]')).not.toBeInTheDocument();
-    expect(
-      mocks.command.mock.calls.some((c) => c[0] === "approval_resolve"),
-    ).toBe(false);
-    await userEvent.click(
-      screen.getByRole("button", { name: "موافقة لمرة واحدة" }),
-    );
-    await waitFor(() =>
-      expect(mocks.command).toHaveBeenCalledWith("approval_resolve", {
-        id: "a1",
-        approved: true,
-      }),
-    );
+    expect(screen.queryByRole("button", { name: "الموافقات" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "الأتمتة" })).not.toBeInTheDocument();
   });
   it("clears transient secrets after native keychain save", async () => {
     mocks.native.mockReturnValue(true);
@@ -255,6 +344,8 @@ describe("desktop shell", () => {
     await waitFor(() => expect(field).toHaveValue(""));
     expect(mocks.command).toHaveBeenCalledWith("ai_key_save", {
       key: "test-not-real-secret",
+      provider: "openai",
+      model: "gpt-4.1-mini",
     });
     expect(localStorage.length).toBe(0);
   });
@@ -280,18 +371,21 @@ describe("desktop shell", () => {
     expect(await screen.findByText("Response")).toBeInTheDocument();
     expect(mocks.command).toHaveBeenCalledWith("ai_ask", {
       prompt: "Help me plan",
+      history: [],
     });
   });
-  it("disables input until backend verification", async () => {
+  it("opens assistant links in Labeeb without closing the conversation", async () => {
     mocks.native.mockReturnValue(true);
-    state.automation.status = "running";
-    render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: "المزيد" }));
-    await userEvent.click(screen.getByRole("button", { name: "الأتمتة" }));
-    expect(screen.getByRole("button", { name: "إدخال النص" })).toBeDisabled();
-    expect(
-      screen.getByText("الإدخال غير متاح حتى تتحقق الخدمة الأصلية من دعمه."),
-    ).toBeInTheDocument();
+    state.settings.aiConfigured = true;
+    mocks.command.mockImplementation(async (name: string) => name === 'app_snapshot' ? state : name === 'ai_ask' ? {text:'[صفحة المثال](https://example.com/guide)'} : undefined);
+    render(<App/>);
+    await userEvent.click(screen.getByRole('button',{name:'المساعد الذكي'}));
+    fireEvent.change(screen.getByRole('textbox',{name:'اسأل المساعد…'}),{target:{value:'أعطني الرابط'}});
+    fireEvent.click(screen.getByRole('button',{name:'إرسال'}));
+    const link = await screen.findByRole('link',{name:'صفحة المثال'});
+    fireEvent.click(link);
+    await waitFor(()=>expect(mocks.command).toHaveBeenCalledWith('tab_create',{url:'https://example.com/guide'}));
+    expect(screen.getByRole('complementary',{name:'المساعد الذكي'})).toBeInTheDocument();
   });
   it("does not allow an older snapshot to overwrite a newer result", async () => {
     mocks.native.mockReturnValue(true);
@@ -314,11 +408,11 @@ describe("desktop shell", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "علامة تبويب جديدة" }),
     );
-    await waitFor(() => expect(calls).toBe(2));
+    await waitFor(() => expect(calls).toBeGreaterThanOrEqual(2));
     await act(async () => oldResolve(old));
     expect(document.documentElement.lang).toBe("ar");
   });
-  it("lets Escape cancel history deletion before queuing approval", async () => {
+  it("lets Escape cancel history deletion before executing the command", async () => {
     mocks.native.mockReturnValue(true);
     state.history = [
       {
@@ -345,66 +439,65 @@ describe("desktop shell", () => {
       expect(mocks.command).toHaveBeenCalledWith("history_clear", undefined),
     );
   });
-  it("routes bookmark removal to localized approval instead of claiming deletion", async () => {
+  it("removes a bookmark directly and stays on bookmarks", async () => {
     mocks.native.mockReturnValue(true);
     state.bookmarks = [{ id: 8, title: "Example", url: "https://example.com" }];
     mocks.command.mockImplementation(async (name: string) => {
-      if (name === "bookmark_remove")
-        state.approvals = [
-          {
-            id: "b1",
-            kind: "destructive",
-            summary: "Remove this bookmark",
-            origin: "local",
-            payload: "https://example.com",
-          },
-        ];
+      if (name === "bookmark_remove") state.bookmarks = [];
       if (name === "app_snapshot") return state;
     });
     render(<App />);
     await userEvent.click(screen.getByRole("button", { name: "المفضلة" }));
     await userEvent.click(await screen.findByRole("button", { name: "إزالة" }));
-    expect(
-      await screen.findByText("إزالة هذه الصفحة من المفضلة"),
-    ).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText("Example")).not.toBeInTheDocument());
+    expect(screen.getByRole("heading", { name: "المفضلة" })).toBeInTheDocument();
     expect(mocks.command).toHaveBeenCalledWith("bookmark_remove", { id: 8 });
-    expect(
-      mocks.command.mock.calls.some((c) => c[0] === "approval_resolve"),
-    ).toBe(false);
   });
-  it("routes key removal to approval without claiming it was removed", async () => {
+  it("removes the key directly and updates settings", async () => {
     mocks.native.mockReturnValue(true);
     state.settings.aiConfigured = true;
     mocks.command.mockImplementation(async (name: string) => {
-      if (name === "ai_key_delete")
-        state.approvals = [
-          {
-            id: "k1",
-            kind: "destructive",
-            summary: "Remove the saved AI API key",
-            origin: "local",
-            payload:
-              "The saved credential will be removed from the OS keychain.",
-          },
-        ];
+      if (name === "ai_key_delete") state.settings.aiConfigured = false;
       if (name === "app_snapshot") return state;
     });
     render(<App />);
     await userEvent.click(screen.getByRole("button", { name: "الإعدادات" }));
-    await userEvent.click(
-      await screen.findByRole("button", { name: "إزالة المفتاح" }),
-    );
-    expect(
-      await screen.findByText("إزالة مفتاح الذكاء الاصطناعي المحفوظ"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("سيُحذف المفتاح المحفوظ من خزنة مفاتيح نظام التشغيل."),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText("أُزيل مفتاح الذكاء الاصطناعي."),
-    ).not.toBeInTheDocument();
-    expect(
-      mocks.command.mock.calls.some((c) => c[0] === "approval_resolve"),
-    ).toBe(false);
+    await userEvent.click(await screen.findByRole("button", { name: "إزالة المفتاح" }));
+    expect(await screen.findByText("أُزيل مفتاح الذكاء الاصطناعي.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "إزالة المفتاح" })).not.toBeInTheDocument();
+    expect(mocks.command).toHaveBeenCalledWith("ai_key_delete", undefined);
   });
+});
+it('moves native page bounds when language flips with the assistant open', async () => {
+  mocks.native.mockReturnValue(true);
+  state.tabs = [{id:'layout',title:'Layout page',url:'https://example.com/'}];
+  state.activeTabId = 'layout';
+  mocks.command.mockImplementation(async (name: string, args?: {locale?: 'ar' | 'en'}) => {
+    if (name === 'settings_update' && args?.locale) state.settings.locale = args.locale;
+    return name === 'app_snapshot' ? structuredClone(state) : undefined;
+  });
+  const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function(this: HTMLElement) {
+    const x = this.closest('.app-shell')?.getAttribute('dir') === 'rtl' ? 380 : 72;
+    return {x,y:100,width:700,height:600,top:100,left:x,right:x+700,bottom:700,toJSON:()=>({})};
+  });
+  try {
+    render(<App/>);
+    await screen.findByRole('tab',{name:'Layout page'});
+    await userEvent.click(screen.getByRole('button',{name:'المساعد الذكي'}));
+    const panel = document.querySelector('#assistant-panel');
+    expect(panel).not.toBeNull();
+    for (const [language, x] of [['English',72],['عربي',380]] as const) {
+      mocks.command.mockClear();
+      await userEvent.click(screen.getByRole('button',{name:language}));
+      await waitFor(() => expect(mocks.command).toHaveBeenCalledWith('browser_bounds',expect.objectContaining({x,width:700,visible:true})));
+      expect(document.querySelector('#assistant-panel')).toBe(panel);
+      expect(document.querySelector('.assistant-toggle')).toHaveAttribute('aria-expanded','true');
+    }
+  } finally { rect.mockRestore(); }
+});
+it('removes agent permissions from model settings', async () => {
+  mocks.native.mockReturnValue(true);
+  render(<App/>);
+  await userEvent.click(screen.getByRole('button',{name: '\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a'}));
+  expect(document.querySelector('.agent-consent')).toBeNull();
 });

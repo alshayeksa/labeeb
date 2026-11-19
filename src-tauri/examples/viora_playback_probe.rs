@@ -1,5 +1,7 @@
 //! Live Viora playback in a temporary WebView2 profile; never reads user data.
+#[cfg(windows)]
 use tauri::Manager;
+#[cfg(windows)]
 async fn eval(view: &tauri::Webview, script: &str) -> Result<String,String> {
     let (tx,rx)=tokio::sync::oneshot::channel();
     let tx=std::sync::Mutex::new(Some(tx));
@@ -7,6 +9,13 @@ async fn eval(view: &tauri::Webview, script: &str) -> Result<String,String> {
     tokio::time::timeout(std::time::Duration::from_secs(5),rx).await.map_err(|_|"eval timeout")?.map_err(|_|"eval closed".into())
 }
 
+#[cfg(not(windows))]
+fn main() {
+    eprintln!("The Viora playback probe requires Windows and WebView2.");
+    std::process::exit(1);
+}
+
+#[cfg(windows)]
 fn main() {
     let profile = tempfile::tempdir().unwrap();
     let root = profile.path().to_owned();

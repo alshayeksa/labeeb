@@ -948,12 +948,36 @@ fn install_browser_keys(app: &AppHandle, id: &str) -> Result<()> {
 async fn window_fullscreen_toggle(w: Webview, app: AppHandle) -> Result<()> {
     trusted(&w)?;
     let window = app.get_window("main").ok_or("Main window unavailable")?;
+    // The macOS window never enters full screen (see `keep_window_buttons`); it zooms instead.
+    if cfg!(target_os = "macos") {
+        let zoomed = window.is_maximized().map_err(|e| e.to_string())?;
+        if zoomed { window.unmaximize() } else { window.maximize() }.map_err(|e| e.to_string())?;
+        changed(&app);
+        return Ok(());
+    }
     let fullscreen = window.is_fullscreen().map_err(|e| e.to_string())?;
     window.set_fullscreen(!fullscreen).map_err(|e| e.to_string())?;
     changed(&app);
     Ok(())
 }
 
+/// Makes the green window button enlarge the window to fill the screen instead of entering
+/// full screen, where macOS hides the window buttons that sit beside the tabs.
+#[cfg(target_os = "macos")]
+fn keep_window_buttons(app: &AppHandle) {
+    use objc2::runtime::AnyObject;
+    const FULL_SCREEN_PRIMARY: usize = 1 << 7;
+    const FULL_SCREEN_NONE: usize = 1 << 9;
+    let Some(ns_window) = app.get_window("main").and_then(|w| w.ns_window().ok()) else { return };
+    let window = ns_window as *mut AnyObject;
+    if window.is_null() { return; }
+    // SAFETY: `window` is the live NSWindow of the main window and this runs on the main
+    // thread during setup; collectionBehavior is a plain NSUInteger option set.
+    unsafe {
+        let behavior: usize = objc2::msg_send![window, collectionBehavior];
+        let _: () = objc2::msg_send![window, setCollectionBehavior: (behavior & !FULL_SCREEN_PRIMARY) | FULL_SCREEN_NONE];
+    }
+}
 /// Height of the macOS title bar that overlaps the window's content view.
 ///
 /// Tauri gives macOS windows a full-size content view under an opaque title bar. The shell
@@ -1843,6 +1867,8 @@ pub fn run() {
                             && u.port() == Some(1420))
                 })
                 .build()?;
+            #[cfg(target_os = "macos")]
+            keep_window_buttons(app.handle());
             #[cfg(windows)]
             if let Some(main) = app.get_webview("main") {
                 main.with_webview(|native| unsafe {

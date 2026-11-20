@@ -223,7 +223,12 @@ impl VideoManager {
             "--print", "before_dl:LABEEB_TITLE|%(title)s", "--print", "post_process:LABEEB_PROCESSING|%(id)s", "--js-runtimes"])
             .arg(format!("{JS_RUNTIME}:{}", self.tools.join(TOOLS[1].name).display())).arg("--ffmpeg-location").arg(&self.tools);
         if job.quality == "audio" { cmd.args(["-f", "bestaudio[ext=m4a]/bestaudio", "-x", "--audio-format", "m4a"]); }
-        else { cmd.args(["-f", &format!("bv[height<={}][ext=mp4]+ba[ext=m4a]/b[height<={}][ext=mp4]", job.quality, job.quality), "--merge-output-format", "mp4"]); }
+        else {
+            // H.264 with AAC plays in every built-in player (QuickTime refuses AV1 and VP9);
+            // other MP4 video is only a fallback when a site offers no H.264 at this size.
+            let q = &job.quality;
+            cmd.args(["-f", &format!("bv[height<={q}][vcodec^=avc1]+ba[ext=m4a]/bv[height<={q}][ext=mp4]+ba[ext=m4a]/b[height<={q}][ext=mp4]"), "--merge-output-format", "mp4"]);
+        }
         cmd.arg("-o").arg(temp.join("video.%(ext)s")).arg("--").arg(&job.url).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true);
         #[cfg(windows)] cmd.creation_flags(0x08000000);
         // Own process group, so cancelling also stops yt-dlp's children (FFmpeg, Deno and the

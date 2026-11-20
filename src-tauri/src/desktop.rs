@@ -1390,8 +1390,10 @@ fn download_open(w: Webview, state: State<'_, AppState>, id: String) -> Result<(
         if result.0 as isize <= 32 { return Err("Could not open the file".into()); }
         Ok(())
     }
-    #[cfg(not(windows))]
-    { Err("Opening files is currently supported on Windows".into()) }
+    #[cfg(target_os = "macos")]
+    { mac_open(&[path.as_os_str()]) }
+    #[cfg(not(any(windows, target_os = "macos")))]
+    { Err("Opening files is not supported on this system".into()) }
 }
 /// Shows a finished or running download in its folder. The path comes from the
 /// shell's own record, never from the caller.
@@ -1407,8 +1409,17 @@ fn download_reveal(w: Webview, state: State<'_, AppState>, id: String) -> Result
         if result.0 as isize <= 32 { return Err("Could not open the folder".into()); }
         Ok(())
     }
-    #[cfg(not(windows))]
-    { let _ = folder; Err("Opening folders is currently supported on Windows".into()) }
+    // Finder selects the file itself when it is still there.
+    #[cfg(target_os = "macos")]
+    { if path.is_file() { mac_open(&["-R".as_ref(), path.as_os_str()]) } else { mac_open(&[folder.as_os_str()]) } }
+    #[cfg(not(any(windows, target_os = "macos")))]
+    { let _ = folder; Err("Opening folders is not supported on this system".into()) }
+}
+/// Hands absolute paths from the shell's own records to the macOS `open` tool.
+#[cfg(target_os = "macos")]
+fn mac_open(args: &[&std::ffi::OsStr]) -> Result<()> {
+    let done = std::process::Command::new("/usr/bin/open").args(args).status().map_err(|_| "Could not open the file")?;
+    if done.success() { Ok(()) } else { Err("Could not open the file".into()) }
 }
 /// Removes a finished download: its file goes to the Recycle Bin and its row
 /// leaves the list. Failed and cancelled rows are simply dismissed.

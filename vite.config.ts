@@ -8,6 +8,9 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],
     restoreMocks: true,
+    // Shell tests type into forms keystroke by keystroke; slower CI runners
+    // (macOS Intel) exceed the 5 s default without any real failure.
+    testTimeout: 20000,
   },
   build: { target: "es2022" },
 });

@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 const out = new URL('./dist/', import.meta.url);
 await mkdir(new URL('en/', out), {recursive:true});
 await cp(new URL('./assets/', import.meta.url), new URL('assets/',out),{recursive:true});
-const MAC_VERSION='0.1.51', REPO='https://github.com/alshayeksa/labeeb';
+const MAC_VERSION='0.1.52', REPO='https://github.com/alshayeksa/labeeb';
 const macFiles={arm:`Labeeb_${MAC_VERSION}_aarch64.dmg`,intel:`Labeeb_${MAC_VERSION}_x64.dmg`};
 await mkdir(new URL('downloads/',out),{recursive:true});
 for (const file of Object.values(macFiles)) await copyFile(new URL(`./downloads/${file}`,import.meta.url),new URL(`downloads/${file}`,out)).catch(()=>{throw Error(`Missing downloads/${file}: copy the signed DMG from the macOS release artifacts first.`)});

@@ -6,9 +6,14 @@
 - Project: labeeb
 - Production branch: main
 - Public URL: https://labeeb-4ry.pages.dev
-- Deployment: fc1def47-fcfc-435a-be99-21d12502ef7a
-- Requested custom domain: labeeb.alshaye.ai
-- Custom domain registered on Pages; pending DNS (CNAME record not set).
+- Deployment: 1814c220 (2026-11-20, adds macOS 0.1.50 downloads and GitHub link)
+- Custom domain: https://labeeb.alshaye.ai (live)
+
+macOS installers are served from `/downloads/`. Copy the signed, notarized DMGs
+from the "Signed macOS release" workflow artifacts into `labeeb-wbsite/downloads/`
+before `node build.mjs` (the build fails if they are missing). They are git-ignored
+and must stay under Cloudflare Pages' 25 MiB per-file limit. Update `MAC_VERSION`
+in `build.mjs` for a new release.
 
 Required DNS record in alshaye.ai:
 

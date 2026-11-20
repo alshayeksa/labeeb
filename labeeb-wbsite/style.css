@@ -60,3 +60,11 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline-color:var(--g
  .origin-identity small{font-size:10px;letter-spacing:2px}
  .origin-identity svg{width:24px;height:27px}
 }
+
+.mac-downloads{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:22px}
+.mac-label{font-weight:700;font-size:15px;opacity:.85}
+.button.secondary{background:transparent;color:inherit;border:1px solid currentColor;font-size:16px;padding:10px 18px;gap:10px}
+.button.secondary:hover{background:rgba(127,127,127,.14)}
+.button.secondary small{font-weight:400;opacity:.75;font-size:13px}
+.mac-note{text-align:center;margin-top:10px}
+@media (max-width:600px){.mac-downloads{flex-direction:column;align-items:stretch}.mac-label{text-align:center}}

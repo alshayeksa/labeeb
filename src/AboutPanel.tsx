@@ -9,7 +9,7 @@ import notices from "../THIRD_PARTY_NOTICES.md?raw";
 import fontLicense from "../licenses/Tajawal-OFL.txt?raw";
 import vioraLicense from "../licenses/Viora-AGPL-3.0.txt?raw";
 import type { BrowserModel } from "./useBrowser";
-import { openViora } from "./viora";
+import { openViora, vioraSupported } from "./viora";
 
 export default function AboutPanel({ model: m }: { model: BrowserModel }) {
   const openWebsite = async (event: MouseEvent<HTMLAnchorElement>) => {
@@ -72,9 +72,9 @@ export default function AboutPanel({ model: m }: { model: BrowserModel }) {
             ? "مشغّل يوتيوب من تطوير شايع الشايع، مدمج في لبيب ويعمل في تبويب معزول لا يشارك ملفات تعريف الارتباط مع تصفحك. يستند إلى مشروع FreeTube مفتوح المصدر، ولا تربطه أي صلة بشركة Google أو منصة YouTube."
             : "A YouTube player developed by Shaye Alshaye and integrated into Labeeb. It runs in an isolated tab that shares no cookies with your browsing. Based on the open-source FreeTube project; not affiliated with Google or YouTube."}</p>
         </div>
-        <button type="button" className="button about-viora-open" disabled={m.busy || !m.isNative} onClick={() => void openViora(m)}>
+        {vioraSupported(m) && <button type="button" className="button about-viora-open" disabled={m.busy || !m.isNative} onClick={() => void openViora(m)}>
           {ar ? "افتح Viora" : "Open Viora"}<ArrowUpRight size={16} aria-hidden="true" />
-        </button>
+        </button>}
       </section>
       <section className="about-origin" aria-labelledby="about-engine-title">
         <span className="about-origin-icon"><Globe2 size={22} aria-hidden="true" /></span>

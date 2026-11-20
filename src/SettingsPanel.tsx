@@ -11,6 +11,7 @@ import {
 import type { BrowserModel } from "./useBrowser";
 import { readSearchEngine, saveSearchEngine, searchEngines } from "./bridge";
 import type { SearchEngine } from "./bridge";
+import { vioraSupported } from "./viora";
 import { Clapperboard, Search } from "./icons";
 import { Moon, Sun, Monitor } from "./icons";
 import type { ThemeModel } from "./theme";
@@ -80,12 +81,12 @@ export default function SettingsPanel({ model: m, theme }: { model: BrowserModel
         </div>
         <p className="field-hint">{ar ? "يُستخدم عند كتابة عبارة بحث في شريط العنوان بدل رابط." : "Used when you type a search phrase in the address bar instead of a link."}</p>
       </section>
-      <section className="settings-card">
+      {vioraSupported(m) && <section className="settings-card">
         <div className="setting-title"><Clapperboard size={20}/><h2>Viora</h2></div>
         <p>{ar ? "Viora برنامج مستقل لمشاهدة يوتيوب بلا إعلانات. يشغّله لبيب من زر Viora في القائمة الجانبية، ومن زر «بلا إعلانات» عند فتح فيديو يوتيوب." : "Viora is a separate program for watching YouTube without ads. Labeeb starts it from the Viora sidebar button and from the “Ad-free” button on YouTube videos."}</p>
         <p className="field-hint" dir="auto">{m.snapshot.settings.vioraPath ? `${ar ? "المكان المحدد" : "Selected location"}: ${m.snapshot.settings.vioraPath}` : (ar ? "لم يُحدَّد مكان Viora بعد؛ سيُطلب منك عند أول استخدام إن لم يُعثر عليه تلقائيًا." : "No location selected yet; you will be asked on first use if it is not found automatically.")}</p>
         <button className="button" disabled={m.busy || !m.isNative} onClick={() => void m.run("viora_choose")}>{ar ? "تحديد مكان Viora.exe" : "Choose Viora.exe"}</button>
-      </section>
+      </section>}
       {m.snapshot.settings.passwordSaveSupported && <section className="settings-card">
         <div className="setting-title"><KeyRound size={20}/><h2>{ar ? "كلمات مرور المواقع" : "Website passwords"}</h2></div>
         <p>{ar ? "يسأل لبيب عن حفظ بيانات الدخول في خزنته عند إرسال نموذج دخول مدعوم. الحفظ يتم بعد موافقتك والتحقق من هويتك؛ لا تُرسل الكلمات إلى المساعد. للتعبئة، استخدم زر المفتاح بجانب شريط العنوان." : "Labeeb offers to save supported login forms in its vault after your approval and identity verification. Passwords are not sent to the assistant. Use the key button beside the address bar to fill a login."}</p>

@@ -4,12 +4,51 @@ use sha2::{Digest, Sha256};
 use std::{path::{Path, PathBuf}, sync::{Arc, Mutex, atomic::{AtomicBool, AtomicU32, Ordering}}, process::Stdio};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 type Result<T> = std::result::Result<T, String>;
-const TOOLS: [(&str, &str, &str); 3] = [
-    ("yt-dlp.exe", "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp.exe", "66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a"),
-    ("node.exe", "https://nodejs.org/dist/v24.22.2/win-x64/node.exe", "1c331340fa6cac5e4294725959070a143fa0507195a78ad77eed7943f719aac9"),
-    ("ffmpeg.exe", "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip", "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec"),
+/// One pinned download tool. `hash` is the SHA-256 of the installed file. Archives also
+/// pin the download itself (`archive_hash`) and name the single entry to extract.
+pub(crate) struct Tool { pub name: &'static str, url: &'static str, pub hash: &'static str, archive: Option<(&'static str, &'static str)> }
+const fn raw(name: &'static str, url: &'static str, hash: &'static str) -> Tool { Tool { name, url, hash, archive: None } }
+/// `entry` matches an archive member named exactly `entry` or ending in `/entry`.
+const fn zipped(name: &'static str, url: &'static str, archive_hash: &'static str, entry: &'static str, hash: &'static str) -> Tool {
+    Tool { name, url, hash, archive: Some((archive_hash, entry)) }
+}
+#[cfg(windows)]
+static TOOLS: [Tool; 3] = [
+    raw("yt-dlp.exe", "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp.exe", "66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a"),
+    raw("node.exe", "https://nodejs.org/dist/v24.22.2/win-x64/node.exe", "1c331340fa6cac5e4294725959070a143fa0507195a78ad77eed7943f719aac9"),
+    zipped("ffmpeg.exe", "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip",
+        "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba", "bin/ffmpeg.exe", "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec"),
 ];
-const ARCHIVE_HASH: &str = "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba";
+#[cfg(windows)]
+const JS_RUNTIME: &str = "node";
+// macOS: the universal yt-dlp build, Deno as its JavaScript runtime (shipped as a zip), and
+// signed FFmpeg 9.0.2 builds from ffmpeg.martin-riedl.de, one per processor family.
+#[cfg(target_os = "macos")]
+const YT_DLP_MACOS: Tool = raw("yt-dlp", "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_macos", "0f192b7ec147ab6288885d6351d9ab67367640029b4377576ef46dd79cf7b202");
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+static TOOLS: [Tool; 3] = [
+    YT_DLP_MACOS,
+    zipped("deno", "https://github.com/denoland/deno/releases/download/v2.9.8/deno-aarch64-apple-darwin.zip",
+        "9f0bf660393da2eaff044cdc7444cb08c73f235849b61d224d825a194ce7c98e", "deno", "d1e99265e5e6ee096c5780d88ff7d3e6cfdf33b1953a118b4889cab8ca6980ba"),
+    zipped("ffmpeg", "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffmpeg.zip",
+        "c8ed4c4e6978a03c485edbfe4e0a5dc2380f8a30bba5150531b31b094492d924", "ffmpeg", "2e11c6f90993cdb79fff84d3f90044d28316b310e75b3e030cfc9a54f2c9d384"),
+];
+#[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+static TOOLS: [Tool; 3] = [
+    YT_DLP_MACOS,
+    zipped("deno", "https://github.com/denoland/deno/releases/download/v2.9.8/deno-x86_64-apple-darwin.zip",
+        "4b2f5edd2639b7470f034238b321d7002d8dfb4726d8558f52c17afac370eb2c", "deno", "5d206ba69742549cc161db06e86f1d93c5622e1dbc8ba9d15a618e538fbc92f4"),
+    zipped("ffmpeg", "https://ffmpeg.martin-riedl.de/download/macos/amd64/1789931006_9.0.2/ffmpeg.zip",
+        "7c6b4125b191cbf773832dc51f424cf2b6bb7da43007d1e066f95909e47cacd4", "ffmpeg", "b25689cf2211c0582d317e849912769a1f1c93904fe102c485b5364a425633d1"),
+];
+#[cfg(target_os = "macos")]
+const JS_RUNTIME: &str = "deno";
+#[cfg(not(any(windows, target_os = "macos")))]
+static TOOLS: [Tool; 0] = [];
+#[cfg(not(any(windows, target_os = "macos")))]
+const JS_RUNTIME: &str = "node";
+/// Order in TOOLS: download engine, JavaScript runtime, FFmpeg.
+pub(crate) fn ffmpeg_tool() -> Option<&'static Tool> { TOOLS.get(2) }
 
 pub fn youtube_url(input: &str) -> Result<String> {
     let u = url::Url::parse(input.trim()).map_err(|_| "رابط غير صالح")?;
@@ -73,10 +112,14 @@ impl VideoManager {
                 let pid = j.pid.load(Ordering::Relaxed);
                 if pid != 0 { let _ = std::process::Command::new("taskkill.exe").args(["/PID", &pid.to_string(), "/T", "/F"]).creation_flags(0x08000000).stdout(Stdio::null()).stderr(Stdio::null()).status(); }
             }
+            #[cfg(unix)] {
+                let pid = j.pid.load(Ordering::Relaxed);
+                if pid != 0 { let _ = std::process::Command::new("/bin/kill").args(["-KILL", "--", &format!("-{pid}")]).stdout(Stdio::null()).stderr(Stdio::null()).status(); }
+            }
         }
     }
     pub fn start(self: &Arc<Self>, url: &str, quality: &str, folder: Option<String>) -> Result<()> {
-        if !cfg!(windows) { return Err("تحميل الفيديو متاح حاليًا على Windows".into()); }
+        if TOOLS.is_empty() { return Err("تحميل الفيديو متاح حاليًا على Windows وmacOS".into()); }
         let url = youtube_url(url)?;
         if !["720", "1080", "audio"].contains(&quality) { return Err("جودة غير صالحة".into()); }
         let folder = folder.filter(|s| !s.trim().is_empty()).map(PathBuf::from).unwrap_or_else(|| self.default_folder.clone());
@@ -107,17 +150,18 @@ impl VideoManager {
         if self.ready.load(Ordering::Relaxed) { return Ok(()); }
         tokio::fs::create_dir_all(&self.tools).await.map_err(|_| "تعذر إنشاء مجلد أدوات التحميل")?;
         let client = reqwest::Client::builder().https_only(true).connect_timeout(std::time::Duration::from_secs(20)).timeout(std::time::Duration::from_secs(900)).build().map_err(|_| "تعذر الاتصال")?;
-        for (name, url, hash) in TOOLS {
+        for tool in TOOLS.iter() {
+            let (name, url, hash) = (tool.name, tool.url, tool.hash);
             if job.cancel.load(Ordering::Relaxed) { return Err("تم الإلغاء".into()); }
             let target = self.tools.join(name);
-            if verified(&target, hash).await { continue; }
+            if verified(&target, hash).await { make_executable(&target).await?; continue; }
             // Optional offline pack beside the executable; never search PATH or other apps.
             if let Ok(exe) = std::env::current_exe() {
                 if let Some(parent) = exe.parent() {
                     let bundled = parent.join("video-tools").join(name);
                     if verified(&bundled, hash).await {
                         tokio::fs::copy(&bundled, &target).await.map_err(|_| "تعذر تجهيز الأدوات من الحزمة المحلية")?;
-                        if verified(&target, hash).await { continue; }
+                        if verified(&target, hash).await { make_executable(&target).await?; continue; }
                     }
                 }
             }
@@ -135,23 +179,24 @@ impl VideoManager {
                     file.write_all(&chunk).await.map_err(|_| "تعذر حفظ الأدوات؛ تحقق من مساحة القرص")?;
                 }
                 file.flush().await.map_err(|_| "تعذر حفظ الأدوات")?; drop(file);
-                if !verified(&tmp, if name == "ffmpeg.exe" { ARCHIVE_HASH } else { hash }).await { return Err("فشل التحقق من سلامة أدوات التحميل".into()); }
-                if name == "ffmpeg.exe" {
+                if !verified(&tmp, tool.archive.map_or(hash, |(archive_hash, _)| archive_hash)).await { return Err("فشل التحقق من سلامة أدوات التحميل".into()); }
+                if let Some((_, entry_name)) = tool.archive {
                     let archive_path = tmp.clone(); let output = target.with_extension("extract"); let extracted = output.clone();
                     tokio::task::spawn_blocking(move || -> Result<()> {
                         let f = std::fs::File::open(archive_path).map_err(|_| "تعذر فتح الأدوات")?;
                         let mut zip = zip::ZipArchive::new(f).map_err(|_| "أرشيف أدوات غير صالح")?;
+                        let suffix = format!("/{entry_name}");
                         for i in 0..zip.len() { let mut entry = zip.by_index(i).map_err(|_| "أرشيف غير صالح")?;
-                            if entry.name().is_ok_and(|name| name.ends_with("/bin/ffmpeg.exe")) && entry.size() < 200 * 1024 * 1024 {
+                            if entry.name().is_ok_and(|name| name == entry_name || name.ends_with(&suffix)) && entry.size() < 200 * 1024 * 1024 {
                                 let mut out = std::fs::File::create(&output).map_err(|_| "تعذر استخراج الأدوات")?;
                                 std::io::copy(&mut entry, &mut out).map_err(|_| "تعذر استخراج الأدوات")?; return Ok(());
                             }
-                        } Err("FFmpeg غير موجود في الأرشيف".into())
+                        } Err("الأداة غير موجودة في الأرشيف".into())
                     }).await.map_err(|_| "تعذر تجهيز الأدوات")??;
-                    if !verified(&extracted, hash).await { let _ = tokio::fs::remove_file(&extracted).await; return Err("فشل التحقق من FFmpeg".into()); }
+                    if !verified(&extracted, hash).await { let _ = tokio::fs::remove_file(&extracted).await; return Err("فشل التحقق من سلامة أدوات التحميل".into()); }
                     tokio::fs::rename(extracted, &target).await.map_err(|_| "تعذر تثبيت الأدوات")?;
                 } else { tokio::fs::rename(&tmp, &target).await.map_err(|_| "تعذر تثبيت الأدوات")?; }
-                Ok(())
+                make_executable(&target).await
             }.await;
             let _ = tokio::fs::remove_file(&tmp).await;
             result?;
@@ -171,16 +216,19 @@ impl VideoManager {
         result
     }
     async fn download(&self, job: &Job, temp: &Path, destination: &Path) -> Result<()> {
-        let mut cmd = tokio::process::Command::new(self.tools.join("yt-dlp.exe"));
+        let mut cmd = tokio::process::Command::new(self.tools.join(TOOLS[0].name));
         cmd.args(["--encoding", "utf-8", "--ignore-config", "--no-playlist", "--no-color", "--newline", "--progress", "--no-overwrites", "--no-simulate", "--no-cache-dir",
             "--match-filter", "!is_live", "--socket-timeout", "20", "--retries", "2", "--fragment-retries", "2", "--concurrent-fragments", "1", "--progress-delta", "0.5",
             "--progress-template", "download:LABEEB|%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s",
             "--print", "before_dl:LABEEB_TITLE|%(title)s", "--print", "post_process:LABEEB_PROCESSING|%(id)s", "--js-runtimes"])
-            .arg(format!("node:{}", self.tools.join("node.exe").display())).arg("--ffmpeg-location").arg(&self.tools);
+            .arg(format!("{JS_RUNTIME}:{}", self.tools.join(TOOLS[1].name).display())).arg("--ffmpeg-location").arg(&self.tools);
         if job.quality == "audio" { cmd.args(["-f", "bestaudio[ext=m4a]/bestaudio", "-x", "--audio-format", "m4a"]); }
         else { cmd.args(["-f", &format!("bv[height<={}][ext=mp4]+ba[ext=m4a]/b[height<={}][ext=mp4]", job.quality, job.quality), "--merge-output-format", "mp4"]); }
         cmd.arg("-o").arg(temp.join("video.%(ext)s")).arg("--").arg(&job.url).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true);
         #[cfg(windows)] cmd.creation_flags(0x08000000);
+        // Own process group, so cancelling also stops yt-dlp's children (FFmpeg, Deno and the
+        // unpacked Python process of the macOS build).
+        #[cfg(unix)] cmd.process_group(0);
         let mut child = cmd.spawn().map_err(|_| "تعذر تشغيل محرك التحميل")?;
         job.pid.store(child.id().unwrap_or(0), Ordering::Relaxed);
         struct PidGuard(Arc<AtomicU32>);
@@ -301,6 +349,15 @@ async fn download_bytes(folder: &Path) -> std::io::Result<u64> {
     }
     Ok(total)
 }
+/// Downloaded tools need the executable bit on macOS; Windows runs them by extension.
+async fn make_executable(path: &Path) -> Result<()> {
+    #[cfg(unix)] {
+        use std::os::unix::fs::PermissionsExt;
+        tokio::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).await.map_err(|_| "تعذر تجهيز أدوات التحميل")?;
+    }
+    #[cfg(not(unix))] let _ = path;
+    Ok(())
+}
 pub(crate) async fn verified(path: &Path, hash: &str) -> bool {
     let Ok(mut file) = tokio::fs::File::open(path).await else { return false; };
     let mut digest = Sha256::new(); let mut buffer = vec![0; 128 * 1024];
@@ -312,6 +369,11 @@ async fn kill_tree(child: &mut tokio::process::Child) {
         let mut kill = tokio::process::Command::new("taskkill.exe");
         kill.args(["/PID", &pid.to_string(), "/T", "/F"]).creation_flags(0x08000000).stdout(Stdio::null()).stderr(Stdio::null());
         let _ = kill.status().await;
+    }
+    #[cfg(unix)] if let Some(pid) = child.id() {
+        // The child leads its own process group (see `download`); signal the whole group.
+        let _ = tokio::process::Command::new("/bin/kill").args(["-KILL", "--", &format!("-{pid}")])
+            .stdout(Stdio::null()).stderr(Stdio::null()).status().await;
     }
     let _ = child.kill().await; let _ = child.wait().await;
 }
@@ -360,7 +422,7 @@ async fn kill_tree(child: &mut tokio::process::Child) {
     }
     #[tokio::test] async fn rejects_changed_engine() {
         let dir = tempfile::tempdir().unwrap(); let file = dir.path().join("engine");
-        tokio::fs::write(&file, "altered").await.unwrap(); assert!(!verified(&file, TOOLS[0].2).await);
+        tokio::fs::write(&file, "altered").await.unwrap(); assert!(!verified(&file, "66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a").await);
     }
     #[cfg(not(windows))]
     #[test] fn unsupported_platform_rejects_download_without_creating_a_job() {

@@ -122,7 +122,17 @@ impl MediaLibrary {
             if result.0 as isize <= 32 { return Err("تعذر الفتح؛ تحقق من وجود مشغّل وسائط".into()); }
             Ok(())
         }
-        #[cfg(not(windows))] { let _ = path; Err("تشغيل الملف متاح حاليًا على Windows".into()) }
+        #[cfg(target_os = "macos")] {
+            // `open` hands the file to its default app (or Finder for a folder). Requiring an
+            // absolute path means it starts with `/` and can never be read as an option.
+            if !path.is_absolute() { return Err("مسار غير صالح".into()); }
+            let status = std::process::Command::new("/usr/bin/open").arg(&path)
+                .stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null())
+                .status().map_err(|_| "تعذر الفتح")?;
+            if !status.success() { return Err("تعذر الفتح؛ تحقق من وجود مشغّل وسائط".into()); }
+            Ok(())
+        }
+        #[cfg(not(any(windows, target_os = "macos")))] { let _ = path; Err("تشغيل الملف متاح حاليًا على Windows وmacOS".into()) }
     }
     pub async fn thumbnail(&self, id: &str) -> Result<Option<String>> {
         let _slot = self.thumbnails.acquire().await.map_err(|_| "المكتبة مغلقة")?;
@@ -133,11 +143,13 @@ impl MediaLibrary {
         if let Ok(bytes) = tokio::fs::read(&output).await { return Ok(Some(format!("data:image/jpeg;base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes)))); }
         // No downloads/installations for thumbnails. Use the existing verified engine only.
         if !self.verified.load(Ordering::Relaxed) {
-            if !crate::video::verified(&self.tools.join("ffmpeg.exe"), "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec").await { return Ok(None); }
+            let Some(ffmpeg) = crate::video::ffmpeg_tool() else { return Ok(None); };
+            if !crate::video::verified(&self.tools.join(ffmpeg.name), ffmpeg.hash).await { return Ok(None); }
             self.verified.store(true, Ordering::Relaxed);
         }
         tokio::fs::create_dir_all(&self.cache).await.map_err(|_| "تعذر حفظ الصورة")?;
-        let mut cmd = tokio::process::Command::new(self.tools.join("ffmpeg.exe"));
+        let Some(ffmpeg) = crate::video::ffmpeg_tool() else { return Ok(None); };
+        let mut cmd = tokio::process::Command::new(self.tools.join(ffmpeg.name));
         cmd.args(["-hide_banner", "-loglevel", "error", "-nostdin", "-threads", "1", "-protocol_whitelist", "file,pipe", "-ss", "0", "-i"])
             .arg(&m.path).args(["-frames:v", "1", "-vf", "scale=480:-2:force_original_aspect_ratio=decrease", "-q:v", "5", "-y"]).arg(&output)
             .stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).kill_on_drop(true);

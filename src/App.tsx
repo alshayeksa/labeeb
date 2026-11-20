@@ -40,7 +40,7 @@ import SavedLibrary from "./SavedLibrary";
 import { Moon, Sun } from "./icons";
 import { useTheme } from "./theme";
 import { activeDownloadCount, useDownloadFlash } from "./downloadFlash";
-import { openViora, youtubeVideoId } from "./viora";
+import { openViora, vioraSupported, youtubeVideoId } from "./viora";
 import { Clapperboard } from "./icons";
 export default function App() {
   const theme = useTheme();
@@ -425,7 +425,7 @@ export default function App() {
             aria-label={m.locale === "ar" ? `تحميلات جارية: ${activeDownloads}. افتح التنزيلات` : `Downloads in progress: ${activeDownloads}. Open Downloads`}>
             <LoaderCircle size={15} className="spin" /><ArrowDownToLine size={15} /><span>{activeDownloads}</span>
           </button>}
-          {activeTab && youtubeVideoId(activeTab.url) && <button type="button" className="viora-watch" disabled={m.busy}
+          {activeTab && vioraSupported(m) && youtubeVideoId(activeTab.url) && <button type="button" className="viora-watch" disabled={m.busy}
             title={m.locale === "ar" ? "شاهد هذا الفيديو بلا إعلانات في برنامج Viora" : "Watch this video ad-free in the Viora program"}
             onClick={() => void openViora(m, activeTab.url)}>
             <Clapperboard size={16}/><span>{m.locale === "ar" ? "بلا إعلانات" : "Ad-free"}</span>

@@ -363,7 +363,7 @@ async fn app_snapshot(w: Webview, app: AppHandle, state: State<'_, AppState>, li
     let revision = d.store.library_revision();
     let mut value = json!({"fullscreen":fullscreen,"tabs":d.tabs,"activeTabId":d.active,"libraryRevision":revision,
         "video":state.video.snapshot(),"downloads":d.downloads,
-        "settings":{"passwordSaveSupported":cfg!(windows),"passwordSave":d.store.setting("vault-save").as_deref() == Some("true"),"locale":d.store.locale(),"aiConfigured":state.ai_configured.load(Ordering::Relaxed),"aiProvider":crate::ai_provider::Connection::load(&d.store)?.provider,"aiConnection":crate::ai_provider::Connection::load(&d.store)?,"vioraPath":d.store.setting(VIORA_PATH_KEY),"vioraBuiltIn":state.viora.is_some()}});
+        "settings":{"passwordSaveSupported":cfg!(windows),"passwordSave":d.store.setting("vault-save").as_deref() == Some("true"),"locale":d.store.locale(),"aiConfigured":state.ai_configured.load(Ordering::Relaxed),"aiProvider":crate::ai_provider::Connection::load(&d.store)?.provider,"aiConnection":crate::ai_provider::Connection::load(&d.store)?,"vioraPath":d.store.setting(VIORA_PATH_KEY),"vioraBuiltIn":state.viora.is_some(),"vioraSupported":cfg!(windows)}});
     if library_revision != Some(revision) {
         value["history"] = json!(d.store.entries(false)?);
         value["bookmarks"] = json!(d.store.entries(true)?);
@@ -1430,6 +1430,7 @@ async fn viora_choose(w: Webview, app: AppHandle, state: State<'_, AppState>) ->
 #[tauri::command]
 async fn viora_open(w: Webview, app: AppHandle, state: State<'_, AppState>, url: Option<String>) -> Result<()> {
     trusted(&w)?;
+    if !cfg!(windows) { return Err("Viora متاح حاليًا على Windows".into()); }
     let video = match url { Some(url) => Some(crate::video::youtube_url(&url)?), None => None };
     if state.viora.is_some() {
         // Built in: show Viora in a tab, reusing its tab when one is already open.
@@ -1741,7 +1742,18 @@ pub fn run() {
             let viora = crate::viora_host::locate_root(&viora_folders)
                 .and_then(|root| crate::viora_host::VioraHost::open(root, &dir.join("viora.sqlite")).ok())
                 .map(Arc::new);
-            let session = store.session();
+            // The Viora mount is served by WebView2 request interception, which exists only on
+            // Windows. Elsewhere the mount address would reach the real YouTube site instead.
+            #[cfg(not(windows))]
+            let viora: Option<Arc<crate::viora_host::VioraHost>> = { drop(viora); None };
+            #[cfg_attr(windows, allow(unused_mut))]
+            let mut session = store.session();
+            #[cfg(not(windows))]
+            {
+                let active_url = session.tabs.get(session.active).map(|t| t.url.clone());
+                session.tabs.retain(|t| !crate::viora_host::is_mount_url(&t.url));
+                session.active = active_url.and_then(|u| session.tabs.iter().position(|t| t.url == u)).unwrap_or(0);
+            }
             let tabs: Vec<Tab> = session.tabs.into_iter().map(|t| Tab {
                 id: format!("tab-{}", uuid::Uuid::new_v4()), title:t.title, url:t.url, zoom:t.zoom,
                 loading:false, deferred:true, navigation_id:None,

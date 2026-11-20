@@ -39,7 +39,7 @@ export interface Snapshot {
   history: SavedPage[];
   bookmarks: SavedPage[];
   downloads: Download[];
-  settings: { passwordSave?: boolean; passwordSaveSupported?: boolean; locale: "ar" | "en"; aiConfigured: boolean; aiProvider?: AiProvider; aiConnection?: {provider: AiProvider; model: string; endpoint: string; protocol: "openai" | "anthropic"; workspace: string}; vioraPath?: string | null; vioraBuiltIn?: boolean };
+  settings: { passwordSave?: boolean; passwordSaveSupported?: boolean; locale: "ar" | "en"; aiConfigured: boolean; aiProvider?: AiProvider; aiConnection?: {provider: AiProvider; model: string; endpoint: string; protocol: "openai" | "anthropic"; workspace: string}; vioraPath?: string | null; vioraBuiltIn?: boolean; vioraSupported?: boolean };
 }
 export interface VideoJob {
   id: string; url: string; title: string; quality: string; status: string;

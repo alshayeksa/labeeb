@@ -1,7 +1,7 @@
 import { ArrowDownToLine, Clock3, Globe2, Info, PanelLeftClose, PanelLeftOpen, Settings, Star, Play } from "./icons";
 import type { BrowserModel, Section } from "./useBrowser";
 import { activeDownloadCount, useDownloadFlash } from "./downloadFlash";
-import { openViora } from "./viora";
+import { openViora, vioraSupported } from "./viora";
 
 export type SidebarMode = "compact" | "expanded";
 const preferenceKey = "labeeb.sidebar-mode";
@@ -34,9 +34,11 @@ export default function Sidebar({model:m, mode, onModeChange}: {model:BrowserMod
       </button>
       <div className="rail-divider"/>
       {primary.map(({key,icon}) => item(key,icon))}
+      {vioraSupported(m) && <>
       <div className="rail-divider"/>
       <button type="button" className="rail-button viora-button" disabled={m.busy} title={vioraLabel} aria-label={vioraLabel}
         onClick={() => void openViora(m)}><Play size={21}/><span className="rail-label viora-label"><b dir="ltr">Viora</b><small>{ar ? "يوتيوب بدون إعلانات" : "YouTube without ads"}</small></span></button>
+      </>}
     </div>
     <div className="rail-bottom">
       {item("settings",Settings)}

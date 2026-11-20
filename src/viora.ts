@@ -21,6 +21,11 @@ export function youtubeVideoId(value: string): string | null {
   } catch { return null; }
 }
 
+/** False on platforms where the native side cannot run Viora (currently macOS). */
+export function vioraSupported(m: Pick<BrowserModel, "snapshot">): boolean {
+  return m.snapshot.settings.vioraSupported !== false;
+}
+
 /**
  * Opens Viora, optionally on a YouTube video. Built in, it shows in a tab.
  * Otherwise the separate program starts, and if Labeeb does not know where it

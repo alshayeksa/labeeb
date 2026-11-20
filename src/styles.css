@@ -165,6 +165,15 @@ svg {
   padding-inline: 2px;
 }
 .tab-strip::-webkit-scrollbar { display: none; }
+/* macOS: the strip is the title bar. Leave room for the window buttons, which stay on
+   the left in both directions, and keep text from being selected while moving the window. */
+.app-shell.window-buttons .titlebar { padding-left: 84px; }
+.titlebar { user-select: none; -webkit-user-select: none; }
+/* A tab being moved follows the pointer above its neighbours, which slide aside. */
+.tab-strip.reordering .tab { transition: transform 0.16s ease; }
+.tab-strip.reordering .tab.moving { transition: none; z-index: 2; box-shadow: 0 0 0 1px var(--light-border-neutral, #2c3d50), 0 6px 16px #00000040; background: var(--light-canvas, #1d2c3d); color: var(--light-text, #edf4f6); }
+.tab-strip.reordering .tab::before { opacity: 0; }
+.tab-strip.reordering, .tab-strip.reordering button { cursor: grabbing; }
 /* Tabs share the strip equally and shrink together, down to the site icon alone. */
 .tab {
   display: flex;

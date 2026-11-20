@@ -5,6 +5,7 @@ import PasswordPrompts from "./PasswordPrompts";
 import { KeyRound } from "./icons";
 import type { VideoOfferData } from "./VideoOffer";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type React from "react";
 import {
   ArrowDownToLine,
   ArrowLeft,
@@ -144,6 +145,24 @@ export default function App() {
   const newTab = useCallback(async () => { await m.createTab(); focusAddress(); }, [m.createTab, focusAddress]);
   const selectTab = useCallback((id: string) => { setFullscreenControls(false); m.setSection("browser"); void m.run("tab_select", {id}); }, [m.setSection, m.run]);
   const closeTab = useCallback((id: string) => { void m.run("tab_close", {id}); }, [m.run]);
+  const moveTab = useCallback((id: string, index: number) => { void m.run("tab_move", {id, index}); }, [m.run]);
+  // On macOS the tab strip is the window's title bar, so its empty areas move the window.
+  const overlay = !!snapshot.settings.titlebarOverlay;
+  const dragWindow = (event: React.MouseEvent<HTMLElement>) => {
+    if (!overlay || event.button !== 0 || snapshot.fullscreen) return;
+    const target = event.target as HTMLElement;
+    if (target !== event.currentTarget && !target.classList.contains("tab-strip")) return;
+    event.preventDefault();
+    void command("window_drag", {zoom: event.detail === 2}).catch(() => {});
+  };
+  // Nothing announces entering or leaving macOS full screen, so ask once the window settles.
+  useEffect(() => {
+    if (!m.isNative || !overlay) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const settle = () => { clearTimeout(timer); timer = setTimeout(() => void m.refresh(), 700); };
+    window.addEventListener("resize", settle);
+    return () => { clearTimeout(timer); window.removeEventListener("resize", settle); };
+  }, [m.isNative, overlay, m.refresh]);
   const zoom = (direction: number) => {
     if (activeTab) void m.run("tab_zoom", { id: activeTab.id,
       scale: direction === 0 ? 1 : nextZoom(activeTab.zoom ?? 1, direction) });
@@ -289,8 +308,8 @@ export default function App() {
     if (activeTab) void m.run("tab_action", { id: activeTab.id, action });
   };
   return (
-    <div className={`app-shell ${immersive ? "immersive" : ""}`} dir={m.locale === "ar" ? "rtl" : "ltr"}>
-      <header className="titlebar" hidden={immersive}>
+    <div className={`app-shell ${immersive ? "immersive" : ""}${overlay && !snapshot.fullscreen ? " window-buttons" : ""}`} dir={m.locale === "ar" ? "rtl" : "ltr"}>
+      <header className="titlebar" hidden={immersive} onMouseDown={dragWindow}>
         <div className="brand" dir="rtl">
           <span className="brand-symbol">
             <img src={labeebLogo} alt="" width={30} height={30} />
@@ -302,7 +321,7 @@ export default function App() {
             <button type="button" lang="en" aria-pressed={m.locale === "en"} disabled={m.busy} onClick={() => void m.switchLocale("en")}>English</button>
           </div>
         </div>
-        <TabStrip tabs={snapshot.tabs} activeId={snapshot.activeTabId} locale={m.locale} t={t} onSelect={selectTab} onClose={closeTab} onNew={newTab} showingBrowser={m.section === "browser"}/>
+        <TabStrip tabs={snapshot.tabs} activeId={snapshot.activeTabId} locale={m.locale} t={t} onSelect={selectTab} onClose={closeTab} onMove={moveTab} onNew={newTab} showingBrowser={m.section === "browser"}/>
         <button type="button" className="maker-badge" dir="ltr"
           title={m.locale === "ar" ? "افتح alshaye.ai في تبويب جديد" : "Open alshaye.ai in a new tab"}
           aria-label={m.locale === "ar" ? "By Shaye Alshaye — افتح alshaye.ai في تبويب جديد" : "By Shaye Alshaye — open alshaye.ai in a new tab"}

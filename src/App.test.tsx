@@ -99,6 +99,25 @@ describe("desktop shell", () => {
     expect(document.querySelector(".app-shell")).not.toHaveClass("immersive");
   });
 
+  it("moves the window from empty title bar space only where the tabs are the title bar", async () => {
+    mocks.native.mockReturnValue(true);
+    render(<App/>);
+    await waitFor(() => expect(mocks.command).toHaveBeenCalledWith("app_snapshot", expect.anything()));
+    fireEvent.mouseDown(screen.getByRole("banner"), {button:0});
+    expect(mocks.command).not.toHaveBeenCalledWith("window_drag", expect.anything());
+    cleanup();
+    (state.settings as {titlebarOverlay?: boolean}).titlebarOverlay = true;
+    render(<App/>);
+    await waitFor(() => expect(document.querySelector(".app-shell")).toHaveClass("window-buttons"));
+    fireEvent.mouseDown(screen.getByRole("tablist"), {button:0, detail:1});
+    expect(mocks.command).toHaveBeenCalledWith("window_drag", {zoom:false});
+    fireEvent.mouseDown(screen.getByRole("banner"), {button:0, detail:2});
+    expect(mocks.command).toHaveBeenCalledWith("window_drag", {zoom:true});
+    mocks.command.mockClear();
+    fireEvent.mouseDown(screen.getByRole("button", {name:"English"}), {button:0});
+    expect(mocks.command).not.toHaveBeenCalledWith("window_drag", expect.anything());
+  });
+
   it("toggles native full screen with F11 and ignores repeats and modified keys", async () => {
     mocks.native.mockReturnValue(true);
     render(<App/>);

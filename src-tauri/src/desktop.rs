@@ -364,7 +364,7 @@ async fn app_snapshot(w: Webview, app: AppHandle, state: State<'_, AppState>, li
     let revision = d.store.library_revision();
     let mut value = json!({"fullscreen":fullscreen,"tabs":d.tabs,"activeTabId":d.active,"libraryRevision":revision,
         "video":state.video.snapshot(),"downloads":d.downloads,
-        "settings":{"passwordSaveSupported":cfg!(windows),"passwordSave":d.store.setting("vault-save").as_deref() == Some("true"),"locale":d.store.locale(),"aiConfigured":state.ai_configured.load(Ordering::Relaxed),"aiProvider":crate::ai_provider::Connection::load(&d.store)?.provider,"aiConnection":crate::ai_provider::Connection::load(&d.store)?,"vioraPath":d.store.setting(VIORA_PATH_KEY),"vioraBuiltIn":state.viora.is_some(),"vioraSupported":cfg!(windows),"fullscreenImmersive":!cfg!(target_os = "macos")}});
+        "settings":{"passwordSaveSupported":cfg!(windows),"passwordSave":d.store.setting("vault-save").as_deref() == Some("true"),"locale":d.store.locale(),"aiConfigured":state.ai_configured.load(Ordering::Relaxed),"aiProvider":crate::ai_provider::Connection::load(&d.store)?.provider,"aiConnection":crate::ai_provider::Connection::load(&d.store)?,"vioraPath":d.store.setting(VIORA_PATH_KEY),"vioraBuiltIn":state.viora.is_some(),"vioraSupported":cfg!(windows),"fullscreenImmersive":!cfg!(target_os = "macos"),"titlebarOverlay":cfg!(target_os = "macos")}});
     // Each tab names the site whose icon is ready; the shell asks for the image once per site.
     if let Some(tabs) = value["tabs"].as_array_mut() {
         for (tab, entry) in d.tabs.iter().zip(tabs) {
@@ -647,6 +647,29 @@ fn ensure_native(app: &AppHandle, id: &str) -> Result<()> {
 async fn tab_create(w: Webview, app: AppHandle, url: String) -> Result<()> {
     trusted(&w)?;
     create_tab(&app, &url)
+}
+/// Moves a tab to a new place in the strip.
+#[tauri::command]
+async fn tab_move(w: Webview, app: AppHandle, state: State<'_, AppState>, id: String, index: usize) -> Result<()> {
+    trusted(&w)?;
+    {
+        let mut d = lock(&state)?;
+        let from = d.tabs.iter().position(|t| t.id == id).ok_or("Unknown tab")?;
+        let tab = d.tabs.remove(from);
+        let index = index.min(d.tabs.len());
+        d.tabs.insert(index, tab);
+    }
+    save_session_later(&app);
+    changed(&app);
+    Ok(())
+}
+/// Lets the shell's own title bar move the window, or zoom it on a double click.
+#[tauri::command]
+fn window_drag(w: Webview, app: AppHandle, zoom: bool) -> Result<()> {
+    trusted(&w)?;
+    let window = app.get_window("main").ok_or("Main window unavailable")?;
+    if !zoom { return window.start_dragging().map_err(|e| e.to_string()); }
+    if window.is_maximized().map_err(|e| e.to_string())? { window.unmaximize() } else { window.maximize() }.map_err(|e| e.to_string())
 }
 #[tauri::command]
 async fn tab_select(w: Webview, app: AppHandle, state: State<'_, AppState>, id: String) -> Result<()> {
@@ -955,6 +978,11 @@ fn native_top_inset(app: &AppHandle) -> f64 {
     let Some(ns_window) = app.get_window("main").and_then(|w| w.ns_window().ok()) else { return 0. };
     let window = ns_window as *mut AnyObject;
     if window.is_null() { return 0.; }
+    // WebKit only insets the shell page under an opaque title bar. With the tabs drawn in a
+    // transparent title bar the shell page starts at the very top, as child WebViews do.
+    // SAFETY: read-only NSWindow property on the live main window, on the main thread.
+    let transparent: bool = unsafe { objc2::msg_send![window, titlebarAppearsTransparent] };
+    if transparent { return 0.; }
     // SAFETY: `window` is the live NSWindow of the main Tauri window; both selectors are
     // read-only NSWindow/NSView properties. browser_bounds runs on the main thread.
     let inset = unsafe {
@@ -1795,7 +1823,15 @@ pub fn run() {
                 viora_profile: dir.join("viora-profile"),
                 favicons: crate::favicon::Favicons::new(dir.join("favicons")),
             });
-            tauri::WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+            let shell = tauri::WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()));
+            // On macOS the tab strip is the title bar: the page is drawn under a transparent
+            // title bar and the window buttons sit centred beside the tabs.
+            #[cfg(target_os = "macos")]
+            let shell = shell
+                .title_bar_style(tauri::TitleBarStyle::Overlay)
+                .hidden_title(true)
+                .traffic_light_position(LogicalPosition::new(16., 20.));
+            shell
                 .title("لبيب | Labeeb")
                 .inner_size(1320., 860.)
                 .min_inner_size(900., 600.)
@@ -1863,6 +1899,8 @@ pub fn run() {
             download_cancel,
             settings_update,
             window_fullscreen_toggle,
+            window_drag,
+            tab_move,
             favicon,
             ai_key_save,
             ai_key_delete,

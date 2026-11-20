@@ -424,7 +424,19 @@ async fn kill_tree(child: &mut tokio::process::Child) {
         let dir = tempfile::tempdir().unwrap(); let file = dir.path().join("engine");
         tokio::fs::write(&file, "altered").await.unwrap(); assert!(!verified(&file, "66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a").await);
     }
-    #[cfg(not(windows))]
+    #[test] fn tool_table_is_pinned_for_this_platform() {
+        let hex = |h: &str| h.len() == 64 && h.bytes().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase());
+        for tool in TOOLS.iter() {
+            assert!(tool.url.starts_with("https://") && hex(tool.hash), "{}", tool.name);
+            if let Some((archive_hash, entry)) = tool.archive { assert!(hex(archive_hash) && !entry.is_empty(), "{}", tool.name); }
+        }
+        if cfg!(any(windows, target_os = "macos")) {
+            assert_eq!(TOOLS.len(), 3);
+            assert_eq!(ffmpeg_tool().map(|t| t.name), Some(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" }));
+            assert_eq!(JS_RUNTIME, if cfg!(windows) { "node" } else { "deno" });
+        }
+    }
+    #[cfg(not(any(windows, target_os = "macos")))]
     #[test] fn unsupported_platform_rejects_download_without_creating_a_job() {
         let dir = tempfile::tempdir().unwrap();
         let manager = VideoManager::new(dir.path().join("tools"), dir.path().join("videos"));

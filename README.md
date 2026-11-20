@@ -7,8 +7,8 @@
 | Platform | Download |
 | --- | --- |
 | Windows | [Get it from Microsoft Store](https://apps.microsoft.com/detail/9N7MHHW7XG45?hl=en-us&gl=SA&ocid=pdpshare) |
-| macOS (Apple Silicon: M1 and later) | [Labeeb_0.1.50_aarch64.dmg](https://labeeb.alshaye.ai/downloads/Labeeb_0.1.50_aarch64.dmg) |
-| macOS (Intel) | [Labeeb_0.1.50_x64.dmg](https://labeeb.alshaye.ai/downloads/Labeeb_0.1.50_x64.dmg) |
+| macOS (Apple Silicon: M1 and later) | [Labeeb_0.1.51_aarch64.dmg](https://labeeb.alshaye.ai/downloads/Labeeb_0.1.51_aarch64.dmg) |
+| macOS (Intel) | [Labeeb_0.1.51_x64.dmg](https://labeeb.alshaye.ai/downloads/Labeeb_0.1.51_x64.dmg) |
 
 The macOS builds are signed with a Developer ID certificate, notarized by Apple and require macOS 12 or later. To check which Mac you have, open the Apple menu and choose **About This Mac**.
 

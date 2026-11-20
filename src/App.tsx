@@ -308,8 +308,14 @@ export default function App() {
     if (activeTab) void m.run("tab_action", { id: activeTab.id, action });
   };
   return (
-    <div className={`app-shell ${immersive ? "immersive" : ""}${overlay && !snapshot.fullscreen ? " window-buttons" : ""}`} dir={m.locale === "ar" ? "rtl" : "ltr"}>
+    <div className={`app-shell ${immersive ? "immersive" : ""}${overlay ? " window-buttons" : ""}`} dir={m.locale === "ar" ? "rtl" : "ltr"}>
       <header className="titlebar" hidden={immersive} onMouseDown={dragWindow}>
+        {/* macOS hides its window buttons in full screen, so the shell draws them there. */}
+        {overlay && snapshot.fullscreen && <div className="own-window-buttons" dir="ltr">
+          <button type="button" className="close" title={t("closeWindow")} aria-label={t("closeWindow")} onClick={() => void command("window_close").catch(() => {})}/>
+          <span aria-hidden="true"/>
+          <button type="button" className="restore" title={t("exitFullscreen")} aria-label={t("exitFullscreen")} onClick={() => void m.run("window_fullscreen_toggle")}/>
+        </div>}
         <div className="brand" dir="rtl">
           <span className="brand-symbol">
             <img src={labeebLogo} alt="" width={30} height={30} />

@@ -54,6 +54,7 @@
     "allow-settings-update",
     "allow-window-fullscreen-toggle",
     "allow-window-drag",
+    "allow-window-close",
     "allow-favicon",
     "allow-tab-move",
     "allow-ai-key-save",

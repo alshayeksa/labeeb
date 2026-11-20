@@ -40,6 +40,7 @@ fn main() {
             "settings_update",
             "window_fullscreen_toggle",
             "window_drag",
+            "window_close",
             "favicon",
             "tab_move",
             "ai_key_save",

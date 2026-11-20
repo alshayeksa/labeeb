@@ -99,6 +99,23 @@ describe("desktop shell", () => {
     expect(document.querySelector(".app-shell")).not.toHaveClass("immersive");
   });
 
+  it("draws its own window buttons in full screen where the tabs are the title bar", async () => {
+    mocks.native.mockReturnValue(true);
+    (state.settings as {fullscreenImmersive?: boolean; titlebarOverlay?: boolean}).fullscreenImmersive = false;
+    (state.settings as {titlebarOverlay?: boolean}).titlebarOverlay = true;
+    render(<App/>);
+    await waitFor(() => expect(document.querySelector(".app-shell")).toHaveClass("window-buttons"));
+    expect(document.querySelector(".own-window-buttons")).toBeNull();
+    cleanup();
+    state.fullscreen = true;
+    render(<App/>);
+    fireEvent.click(await screen.findByRole("button", {name:"إغلاق النافذة"}));
+    expect(mocks.command).toHaveBeenCalledWith("window_close");
+    fireEvent.click(screen.getByRole("button", {name:"الخروج من ملء الشاشة"}));
+    await waitFor(() => expect(mocks.command).toHaveBeenCalledWith("window_fullscreen_toggle", undefined));
+    expect(document.querySelector(".app-shell")).toHaveClass("window-buttons");
+  });
+
   it("moves the window from empty title bar space only where the tabs are the title bar", async () => {
     mocks.native.mockReturnValue(true);
     render(<App/>);

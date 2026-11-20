@@ -168,6 +168,16 @@ svg {
 /* macOS: the strip is the title bar. Leave room for the window buttons, which stay on
    the left in both directions, and keep text from being selected while moving the window. */
 .app-shell.window-buttons .titlebar { padding-left: 84px; }
+.own-window-buttons { position: fixed; top: 14px; left: 16px; z-index: 5; display: flex; gap: 8px; }
+.own-window-buttons > * { width: 12px; height: 12px; padding: 0; border: 0; border-radius: 50%; background: #5a6672; box-shadow: inset 0 0 0 0.5px #00000033; }
+.own-window-buttons button { cursor: default; position: relative; }
+.own-window-buttons .close { background: #ff5f57; }
+.own-window-buttons .restore { background: #28c840; }
+.own-window-buttons button::after { position: absolute; inset: 0; display: none; place-items: center; font: 700 9px/1 system-ui, sans-serif; color: #0000008c; }
+.own-window-buttons .close::after { content: "\00d7"; }
+.own-window-buttons .restore::after { content: "\2013"; }
+.own-window-buttons:hover button::after { display: grid; }
+.own-window-buttons button:focus-visible { outline: 2px solid var(--light-accent, #4fb3bf); outline-offset: 2px; }
 .titlebar { user-select: none; -webkit-user-select: none; }
 /* A tab being moved follows the pointer above its neighbours, which slide aside. */
 .tab-strip.reordering .tab { transition: transform 0.16s ease; }

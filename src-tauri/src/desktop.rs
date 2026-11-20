@@ -922,6 +922,44 @@ async fn window_fullscreen_toggle(w: Webview, app: AppHandle) -> Result<()> {
     Ok(())
 }
 
+/// Height of the macOS title bar that overlaps the window's content view.
+///
+/// Tauri gives macOS windows a full-size content view under an opaque title bar. The shell
+/// WebView lays its page out below the title bar, but wry positions child WebViews from the
+/// top of the whole content view, so tab WebViews would otherwise sit one title-bar height
+/// too high and cover the toolbar. Zero in full screen, where there is no title bar.
+#[cfg(target_os = "macos")]
+fn native_top_inset(app: &AppHandle) -> f64 {
+    use objc2::encode::{Encode, Encoding};
+    use objc2::runtime::AnyObject;
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    #[allow(dead_code)] // Layout must match CGRect; only the height is read.
+    struct Rect { x: f64, y: f64, width: f64, height: f64 }
+    const PAIR: [Encoding; 2] = [Encoding::Double, Encoding::Double];
+    unsafe impl Encode for Rect {
+        const ENCODING: Encoding = Encoding::Struct(
+            "CGRect",
+            &[Encoding::Struct("CGPoint", &PAIR), Encoding::Struct("CGSize", &PAIR)],
+        );
+    }
+    let Some(ns_window) = app.get_window("main").and_then(|w| w.ns_window().ok()) else { return 0. };
+    let window = ns_window as *mut AnyObject;
+    if window.is_null() { return 0.; }
+    // SAFETY: `window` is the live NSWindow of the main Tauri window; both selectors are
+    // read-only NSWindow/NSView properties. browser_bounds runs on the main thread.
+    let inset = unsafe {
+        let view: *mut AnyObject = objc2::msg_send![window, contentView];
+        if view.is_null() { return 0.; }
+        let content: Rect = objc2::msg_send![view, frame];
+        let layout: Rect = objc2::msg_send![window, contentLayoutRect];
+        content.height - layout.height
+    };
+    if inset.is_finite() && inset > 0. && inset < 200. { inset } else { 0. }
+}
+#[cfg(not(target_os = "macos"))]
+fn native_top_inset(_app: &AppHandle) -> f64 { 0. }
+
 #[tauri::command]
 fn browser_bounds(
     w: Webview,
@@ -944,6 +982,9 @@ fn browser_bounds(
     {
         return Err("Invalid bounds".into());
     }
+    // Shell coordinates start below the macOS title bar; child WebViews are placed from the
+    // top of the full-size content view. Query before locking: it reads window state.
+    let y = y + native_top_inset(&app);
     let (tabs, active) = {
         let mut d = lock(&state)?;
         if d.bounds == (x, y, width, height, visible) { return Ok(()); }

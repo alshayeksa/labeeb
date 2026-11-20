@@ -6,7 +6,7 @@
 - Project: labeeb
 - Production branch: main
 - Public URL: https://labeeb-4ry.pages.dev
-- Deployment: 23280615 (2026-11-20, macOS 0.1.53 downloads)
+- Deployment: 6c0a83fd (2026-11-20, macOS 0.1.54 downloads)
 - Custom domain: https://labeeb.alshaye.ai (live)
 
 macOS installers are served from `/downloads/`. Copy the signed, notarized DMGs

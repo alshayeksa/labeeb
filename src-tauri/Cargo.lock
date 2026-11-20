@@ -2123,7 +2123,7 @@ dependencies = [
 
 [[package]]
 name = "labeeb-browser"
-version = "0.1.51"
+version = "0.1.52"
 dependencies = [
  "base64 0.22.1",
  "futures-util",

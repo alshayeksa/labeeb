@@ -88,6 +88,17 @@ describe("desktop shell", () => {
     expect(document.querySelector("#assistant-panel")).not.toBeNull();
   });
 
+  it("keeps tabs and controls in full screen where the platform does not use immersive mode", async () => {
+    mocks.native.mockReturnValue(true);
+    state.fullscreen = true;
+    (state.settings as {fullscreenImmersive?: boolean}).fullscreenImmersive = false;
+    render(<App/>);
+    await waitFor(() => expect(mocks.command).toHaveBeenCalledWith("app_snapshot", expect.anything()));
+    expect(screen.getByRole("banner")).toBeVisible();
+    expect(screen.getByRole("tablist")).toBeVisible();
+    expect(document.querySelector(".app-shell")).not.toHaveClass("immersive");
+  });
+
   it("toggles native full screen with F11 and ignores repeats and modified keys", async () => {
     mocks.native.mockReturnValue(true);
     render(<App/>);

@@ -124,7 +124,7 @@ svg {
   background: var(--canvas);
 }
 .titlebar {
-  height: 48px;
+  height: 44px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -158,40 +158,51 @@ svg {
   display: flex;
   align-items: center;
   align-self: stretch;
-  gap: 4px;
   flex: 1;
   min-width: 0;
   overflow-x: auto;
-  padding-top: 6px;
+  scrollbar-width: none;
+  padding-inline: 2px;
 }
+.tab-strip::-webkit-scrollbar { display: none; }
+/* Tabs share the strip equally and shrink together, down to the site icon alone. */
 .tab {
   display: flex;
   align-items: center;
-  min-width: 125px;
+  flex: 1 1 0;
+  min-width: 38px;
   max-width: 220px;
-  background: var(--light-panel, #14202d);
-  border-radius: 9px 9px 0 0;
-  height: 40px;
-  flex: 1;
+  height: 32px;
+  border-radius: 9px;
   position: relative;
   color: var(--muted);
-  border: 1px solid transparent;
-  border-bottom: 0;
+  container-type: inline-size;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
-.tab.active {
-  background: var(--light-surface, #192737);
-  color: var(--light-text, #edf4f6);
-  border-color: var(--light-border-neutral, #2a3a4b);
-}
-.tab.active:before {
+.tab + .tab::before {
   content: "";
   position: absolute;
-  top: 0;
-  right: 15px;
-  left: 15px;
-  height: 2px;
-  background: var(--accent);
-  border-radius: 3px;
+  inset-block: 9px;
+  inset-inline-start: 0;
+  width: 1px;
+  background: var(--light-border-neutral, #2a3a4b);
+  transition: opacity 0.12s ease;
+}
+.tab:hover {
+  background: var(--light-hover, #18242f);
+  color: var(--light-text, #edf4f6);
+}
+.tab.active {
+  flex: 1 0 132px;
+  background: var(--light-canvas, #1d2c3d);
+  color: var(--light-text, #edf4f6);
+  box-shadow: 0 0 0 1px var(--light-border-neutral, #2c3d50), 0 1px 3px #0000002e;
+}
+.tab.active::before,
+.tab.active + .tab::before,
+.tab:hover::before,
+.tab:hover + .tab::before {
+  opacity: 0;
 }
 .tab > button:first-child {
   display: flex;
@@ -201,32 +212,55 @@ svg {
   flex: 1;
   height: 100%;
   padding: 0 10px;
+  border-radius: 9px;
   text-align: start;
 }
 .tab > button:first-child span {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 12px;
+  font-size: 12.5px;
 }
+.tab.active > button:first-child span { font-weight: 500; }
+.tab-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  object-fit: contain;
+}
+/* Closing is offered on the open tab and under the pointer, leaving room for titles. */
 .tab-close {
-  padding: 3px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  margin-inline-end: 5px;
+}
+.tab.active .tab-close,
+.tab:hover .tab-close,
+.tab:focus-within .tab-close {
   display: flex;
-  border-radius: 4px;
-  margin-inline-end: 8px;
 }
 .tab-close:hover {
-  background: var(--light-hover, #304253);
+  background: var(--light-border-neutral, #304253);
+}
+@container (max-width: 76px) {
+  .tab > button:first-child { justify-content: center; padding: 0; }
+  .tab > button:first-child span { display: none; }
+  .tab-close { display: none !important; }
 }
 .preview-tab {
-  height: 40px;
+  height: 32px;
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--light-surface, #192737);
+  background: var(--light-canvas, #1d2c3d);
   border: 1px solid var(--light-border-neutral, #2a3a4b);
-  border-bottom: 0;
-  border-radius: 9px 9px 0 0;
+  border-radius: 9px;
   font-size: 12px;
   padding: 0 16px;
   min-width: 180px;

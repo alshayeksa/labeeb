@@ -64,7 +64,9 @@ export default function App() {
   const m = useBrowser(),
     { t, snapshot, activeTab } = m;
   const [fullscreenControls, setFullscreenControls] = useState(false);
-  const immersive = !!snapshot.fullscreen && m.section === "browser" && !fullscreenControls;
+  // On macOS the green window button enters full screen, so people use it to enlarge the
+  // window: tabs and controls stay visible there. Elsewhere F11 gives the page the screen.
+  const immersive = !!snapshot.fullscreen && snapshot.settings.fullscreenImmersive !== false && m.section === "browser" && !fullscreenControls;
   // Finish resetting before paint, so a following Ctrl+L isn't undone by a late effect.
   useLayoutEffect(() => { setFullscreenControls(false); }, [snapshot.fullscreen]);
   const crashNotice = useRef(() => {});
@@ -223,10 +225,14 @@ export default function App() {
     const notice = document.querySelector(".password-save-notice");
     if (notice) observer.observe(notice);
     if (suggestionRef.current) observer.observe(suggestionRef.current);
-    window.addEventListener("resize", update);
+    // The macOS title bar inset changes only once the full-screen animation ends.
+    let settle: ReturnType<typeof setTimeout> | undefined;
+    const resized = () => { update(); clearTimeout(settle); settle = setTimeout(update, 800); };
+    window.addEventListener("resize", resized);
     return () => {
       observer.disconnect();
-      window.removeEventListener("resize", update);
+      clearTimeout(settle);
+      window.removeEventListener("resize", resized);
     };
   }, [
     m.isNative,
@@ -237,6 +243,7 @@ export default function App() {
     m.locale,
     assistantOpen,
     immersive,
+    snapshot.fullscreen,
     confirmHistory,
     shortcutsOpen,
     videoOffer,

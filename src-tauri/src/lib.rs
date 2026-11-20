@@ -24,4 +24,7 @@ pub mod viora_host;
 #[cfg(feature = "desktop")]
 pub mod media_library;
 
+#[cfg(feature = "desktop")]
+pub mod favicon;
+
 

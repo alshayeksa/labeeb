@@ -90,6 +90,7 @@ struct AppState {
     /// Present when a prepared Viora interface was found; Viora then opens as a tab.
     viora: Option<Arc<crate::viora_host::VioraHost>>,
     viora_profile: PathBuf,
+    favicons: Arc<crate::favicon::Favicons>,
 }
 fn lock(s: &AppState) -> Result<std::sync::MutexGuard<'_, Data>> {
     s.data.lock().map_err(|_| "State unavailable".into())
@@ -363,7 +364,15 @@ async fn app_snapshot(w: Webview, app: AppHandle, state: State<'_, AppState>, li
     let revision = d.store.library_revision();
     let mut value = json!({"fullscreen":fullscreen,"tabs":d.tabs,"activeTabId":d.active,"libraryRevision":revision,
         "video":state.video.snapshot(),"downloads":d.downloads,
-        "settings":{"passwordSaveSupported":cfg!(windows),"passwordSave":d.store.setting("vault-save").as_deref() == Some("true"),"locale":d.store.locale(),"aiConfigured":state.ai_configured.load(Ordering::Relaxed),"aiProvider":crate::ai_provider::Connection::load(&d.store)?.provider,"aiConnection":crate::ai_provider::Connection::load(&d.store)?,"vioraPath":d.store.setting(VIORA_PATH_KEY),"vioraBuiltIn":state.viora.is_some(),"vioraSupported":cfg!(windows)}});
+        "settings":{"passwordSaveSupported":cfg!(windows),"passwordSave":d.store.setting("vault-save").as_deref() == Some("true"),"locale":d.store.locale(),"aiConfigured":state.ai_configured.load(Ordering::Relaxed),"aiProvider":crate::ai_provider::Connection::load(&d.store)?.provider,"aiConnection":crate::ai_provider::Connection::load(&d.store)?,"vioraPath":d.store.setting(VIORA_PATH_KEY),"vioraBuiltIn":state.viora.is_some(),"vioraSupported":cfg!(windows),"fullscreenImmersive":!cfg!(target_os = "macos")}});
+    // Each tab names the site whose icon is ready; the shell asks for the image once per site.
+    if let Some(tabs) = value["tabs"].as_array_mut() {
+        for (tab, entry) in d.tabs.iter().zip(tabs) {
+            let Some(site) = crate::favicon::site(&tab.url) else { continue };
+            let notify = app.clone();
+            if state.favicons.ready(&site, move || changed(&notify)) { entry["icon"] = json!(site); }
+        }
+    }
     if library_revision != Some(revision) {
         value["history"] = json!(d.store.entries(false)?);
         value["bookmarks"] = json!(d.store.entries(true)?);
@@ -1026,7 +1035,13 @@ fn bookmark_remove(w: Webview, state: State<'_, AppState>, id: i64) -> Result<()
 #[tauri::command]
 fn history_clear(w: Webview, state: State<'_, AppState>) -> Result<()> {
     trusted(&w)?;
+    state.favicons.clear();
     lock(&state)?.store.clear_history()
+}
+#[tauri::command]
+fn favicon(w: Webview, state: State<'_, AppState>, site: String) -> Result<Option<String>> {
+    trusted(&w)?;
+    Ok(state.favicons.get(&site).map(|icon| icon.to_string()))
 }
 #[tauri::command]
 async fn settings_update(w: Webview, app: AppHandle, state: State<'_, AppState>, locale: String, password_save: Option<bool>) -> Result<()> {
@@ -1778,6 +1793,7 @@ pub fn run() {
                 }),
                 viora,
                 viora_profile: dir.join("viora-profile"),
+                favicons: crate::favicon::Favicons::new(dir.join("favicons")),
             });
             tauri::WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title("لبيب | Labeeb")
@@ -1847,6 +1863,7 @@ pub fn run() {
             download_cancel,
             settings_update,
             window_fullscreen_toggle,
+            favicon,
             ai_key_save,
             ai_key_delete,
             ai_ask, ai_cancel,

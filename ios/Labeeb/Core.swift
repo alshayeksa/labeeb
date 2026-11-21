@@ -277,14 +277,21 @@ extension UIApplication {
         let scene = connectedScenes.compactMap { $0 as? UIWindowScene }.first { $0.activationState == .foregroundActive }
             ?? connectedScenes.compactMap { $0 as? UIWindowScene }.first
         var top = scene?.keyWindow?.rootViewController
-        while let presented = top?.presentedViewController { top = presented }
+        // A sheet on its way out cannot present anything, so the search stops beneath it.
+        while let presented = top?.presentedViewController, !presented.isBeingDismissed { top = presented }
         return top
     }
 }
 
-func share(_ items: [Any]) {
-    let sheet = UIActivityViewController(activityItems: items, applicationActivities: nil)
+/// Raises the system share sheet. When a sheet is still closing (the menu the request came from), the
+/// presentation would be dropped without a word, so it waits for the screen to settle.
+func share(_ items: [Any], attempt: Int = 0) {
     guard let top = UIApplication.shared.topController else { return }
+    if top.presentedViewController != nil || top.isBeingPresented || top.transitionCoordinator != nil, attempt < 30 {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { share(items, attempt: attempt + 1) }
+        return
+    }
+    let sheet = UIActivityViewController(activityItems: items, applicationActivities: nil)
     sheet.popoverPresentationController?.sourceView = top.view
     sheet.popoverPresentationController?.sourceRect = CGRect(x: top.view.bounds.midX, y: top.view.bounds.maxY - 80, width: 1, height: 1)
     top.present(sheet, animated: true)

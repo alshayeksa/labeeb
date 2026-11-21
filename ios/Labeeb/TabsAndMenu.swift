@@ -101,6 +101,7 @@ private struct TabCard: View {
     let open: () -> Void
     let close: () -> Void
     @State private var drag: CGFloat = 0
+    @Environment(\.layoutDirection) private var direction
 
     var body: some View {
         VStack(spacing: 0) {
@@ -117,13 +118,9 @@ private struct TabCard: View {
                 .accessibilityHidden(true)
                 Text(tab.displayTitle).font(.footnote).lineLimit(1)
                 Spacer(minLength: 0)
-                Button(action: close) {
-                    Image(systemName: "xmark").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
-                        .frame(width: 36, height: 38)
-                }
-                .accessibilityLabel(t("close_tab"))
             }
             .padding(.leading, 10)
+            .padding(.trailing, 40)
             .frame(height: 38)
 
             ZStack {
@@ -148,14 +145,27 @@ private struct TabCard: View {
         .shadow(color: .black.opacity(0.18), radius: 6, y: 3)
         .contentShape(RoundedRectangle(cornerRadius: 18))
         .onTapGesture(perform: open)
-        .offset(x: drag)
-        .opacity(1.0 - min(Double(abs(drag)) / 320.0, 0.6))
-        // A card must be dragged well across before its tab closes.
-        .gesture(DragGesture(minimumDistance: 24).onChanged { value in
-            if abs(value.translation.width) > abs(value.translation.height) { drag = value.translation.width }
+        // A card must be dragged well across before its tab closes. The finger is followed in screen
+        // coordinates; an offset runs the other way in a right-to-left layout, so it is turned round there.
+        .gesture(DragGesture(minimumDistance: 24, coordinateSpace: .global).onChanged { value in
+            if abs(value.translation.width) > abs(value.translation.height) {
+                drag = direction == .rightToLeft ? -value.translation.width : value.translation.width
+            }
         }.onEnded { value in
             if abs(value.translation.width) > 150 { close() } else { withAnimation(.snappy) { drag = 0 } }
         })
+        // The close button sits above the card's own tap and drag, so neither can take its touch.
+        .overlay(alignment: .topTrailing) {
+            Button(action: close) {
+                Image(systemName: "xmark").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
+                    .frame(width: 44, height: 40)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(t("close_tab"))
+        }
+        .offset(x: drag)
+        .opacity(1.0 - min(Double(abs(drag)) / 320.0, 0.6))
     }
 }
 
@@ -192,7 +202,7 @@ struct MenuSheet: View {
                     quick(t("share"), "square.and.arrow.up", enabled: web) {
                         act(.dismiss)
                         if let url = URL(string: tab?.url ?? "") {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { share([url]) }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { share([url]) }
                         }
                     }
                 }

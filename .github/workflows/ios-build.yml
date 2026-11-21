@@ -23,8 +23,10 @@ concurrency:
 jobs:
   ios:
     if: ${{ !inputs.testflight }}
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 40
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
 
@@ -47,7 +49,7 @@ jobs:
       - name: Capture screens
         run: |
           APP=ios/build/Build/Products/Debug-iphonesimulator/Labeeb.app
-          UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[67] \(" | head -1 | grep -oE '[0-9A-F-]{36}')
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[6-9] \(" | head -1 | grep -oE '[0-9A-F-]{36}')
           echo "simulator $UDID"
           xcrun simctl boot "$UDID"
           xcrun simctl bootstatus "$UDID" -b
@@ -75,10 +77,10 @@ jobs:
   # Apple on the first run. Needs four repository secrets, named in the first step below.
   testflight:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.testflight }}
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 45
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
 

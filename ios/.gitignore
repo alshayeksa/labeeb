@@ -1,0 +1,5 @@
+build/
+*.xcodeproj
+Labeeb/Info.plist
+DerivedData/
+.DS_Store

@@ -122,24 +122,30 @@ jobs:
 
       # A key pasted into a secret often loses its line breaks or its BEGIN/END lines. This rebuilds the
       # file from the key's own characters and reports its shape, never its content.
-      - name: Write the App Store Connect key to a file
+      - name: Write the signing keys to files
         env:
           KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          CERT_KEY: ${{ secrets.IOS_CERTIFICATE_PRIVATE_KEY }}
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           python3 - <<'PY'
           import base64, os, re, sys
-          raw = os.environ["KEY"]
-          body = re.sub(r"-----[A-Z ]+-----", "", raw.replace("\\n", "\n"))
-          body = re.sub(r"\s+", "", body)
           problems = []
-          try:
-              der = base64.b64decode(body, validate=True)
-          except Exception:
-              der = b""
-          if not der or der[:1] != b"\x30":
-              problems.append("APP_STORE_CONNECT_PRIVATE_KEY is not the text of a .p8 file (%d characters, %d lines)" % (len(raw), raw.count("\n") + 1))
+          def key(name, secret, kind, what):
+              raw = os.environ[name]
+              body = re.sub(r"-----[A-Z ]+-----", "", raw.replace("\\n", "\n"))
+              body = re.sub(r"\s+", "", body)
+              try:
+                  der = base64.b64decode(body, validate=True)
+              except Exception:
+                  der = b""
+              if not der or der[:1] != b"\x30":
+                  problems.append("%s is not %s (%d characters, %d lines)" % (secret, what, len(raw), raw.count("\n") + 1))
+              lines = [body[i:i + 64] for i in range(0, len(body), 64)]
+              return len(der), "-----BEGIN %s-----\n" % kind + "\n".join(lines) + "\n-----END %s-----\n" % kind
+          size, api_pem = key("KEY", "APP_STORE_CONNECT_PRIVATE_KEY", "PRIVATE KEY", "the text of a .p8 file")
+          cert_size, cert_pem = key("CERT_KEY", "IOS_CERTIFICATE_PRIVATE_KEY", "RSA PRIVATE KEY", "the RSA key file")
           if not re.fullmatch(r"[A-Z0-9]{10}", os.environ["KEY_ID"].strip()):
               problems.append("APP_STORE_CONNECT_KEY_ID should be 10 letters and digits, got %d characters" % len(os.environ["KEY_ID"]))
           if not re.fullmatch(r"[0-9a-fA-F-]{36}", os.environ["ISSUER_ID"].strip()):
@@ -148,21 +154,21 @@ jobs:
               print("::error::" + line)
           if problems:
               sys.exit(1)
-          path = os.path.join(os.environ["RUNNER_TEMP"], "AuthKey.p8")
-          lines = [body[i:i + 64] for i in range(0, len(body), 64)]
-          with open(path, "w") as f:
-              f.write("-----BEGIN PRIVATE KEY-----\n" + "\n".join(lines) + "\n-----END PRIVATE KEY-----\n")
-          os.chmod(path, 0o600)
-          with open(os.environ["GITHUB_ENV"], "a") as f:
-              f.write("APP_STORE_CONNECT_PRIVATE_KEY=@file:%s\n" % path)
-          print("Key file written: %d bytes of key material." % len(der))
+          for variable, file, pem in (("APP_STORE_CONNECT_PRIVATE_KEY", "AuthKey.p8", api_pem),
+                                      ("CERTIFICATE_PRIVATE_KEY", "certificate.key", cert_pem)):
+              path = os.path.join(os.environ["RUNNER_TEMP"], file)
+              with open(path, "w") as f:
+                  f.write(pem)
+              os.chmod(path, 0o600)
+              with open(os.environ["GITHUB_ENV"], "a") as f:
+                  f.write("%s=@file:%s\n" % (variable, path))
+          print("Key files written: %d and %d bytes of key material." % (size, cert_size))
           PY
 
       - name: Fetch signing from Apple
         env:
           APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          CERTIFICATE_PRIVATE_KEY: ${{ secrets.IOS_CERTIFICATE_PRIVATE_KEY }}
         run: |
           set -euo pipefail
           python3 -m venv "$RUNNER_TEMP/ios-tools"

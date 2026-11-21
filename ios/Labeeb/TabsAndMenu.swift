@@ -147,7 +147,7 @@ private struct TabCard: View {
         .contentShape(RoundedRectangle(cornerRadius: 18))
         .onTapGesture(perform: open)
         .offset(x: drag)
-        .opacity(1 - min(abs(drag) / 320, 0.6))
+        .opacity(1.0 - min(Double(abs(drag)) / 320.0, 0.6))
         // A card must be dragged well across before its tab closes.
         .gesture(DragGesture(minimumDistance: 24).onChanged { value in
             if abs(value.translation.width) > abs(value.translation.height) { drag = value.translation.width }

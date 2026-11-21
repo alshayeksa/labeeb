@@ -89,6 +89,11 @@ enum AI {
     }
 }
 
+/// Collects streamed text for callers that only need the whole reply.
+final class TextBox {
+    var text = ""
+}
+
 struct ChatMessage: Identifiable, Equatable {
     let id = UUID()
     let role: String

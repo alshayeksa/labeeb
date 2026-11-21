@@ -61,6 +61,18 @@ object Secrets {
 class ChatMsg(val role: String, var text: String, val api: String? = null)
 
 object Ai {
+    /** Whether the user has agreed to send what they write, and pages they attach, to this provider. */
+    fun consented(provider: String) = Prefs.sp.getBoolean("ai_consent_$provider", false)
+
+    /** Asks once per provider before anything is sent to it, then carries on with [then]. */
+    fun askConsent(c: android.content.Context, provider: String, then: () -> Unit) {
+        Sheets.message(c, R.drawable.ic_send, c.getString(R.string.ai_consent_title, providers.getValue(provider).label),
+            c.getString(R.string.ai_consent), primary = c.getString(R.string.ai_consent_agree)) {
+            Prefs.sp.edit().putBoolean("ai_consent_$provider", true).apply()
+            then()
+        }
+    }
+
     class Provider(val label: String, val model: String, val endpoint: String, val anthropic: Boolean, val keyName: String)
 
     // Endpoints, default models and protocol details mirror the desktop app (src-tauri/src/ai_provider.rs).

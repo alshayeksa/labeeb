@@ -215,4 +215,7 @@
     <string name="save_password_note">Stored encrypted on this device only, and filled in only after you confirm it is you.</string>
     <string name="add_site_note">The site appears on the home page, one tap away.</string>
     <string name="link">Link</string>
+    <string name="ai_consent_title">Send to %1$s?</string>
+    <string name="ai_consent">Labeeb sends your question, and the page text when you attach it, straight to the provider you chose, using your key. Nothing passes through Labeeb\'s servers, and what you send is covered by the provider\'s privacy policy.</string>
+    <string name="ai_consent_agree">Agree and send</string>
 </resources>

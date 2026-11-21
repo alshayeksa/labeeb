@@ -1,0 +1,1 @@
+A browser designed for Arabic first: a right-to-left interface, a calm reading mode, and an AI assistant that summarises, explains and translates the page you are on.

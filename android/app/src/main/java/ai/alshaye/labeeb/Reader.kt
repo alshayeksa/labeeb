@@ -249,6 +249,10 @@ class ReaderActivity : AppCompatActivity() {
                 primary = getString(R.string.open_settings)) { startActivity(Intent(this, SettingsActivity::class.java)) }
             return
         }
+        if (!Ai.consented(provider)) {
+            Ai.askConsent(this, provider) { translate(article) }
+            return
+        }
         val blocks = article.optJSONArray("blocks") ?: return
         val passages = ArrayList<Pair<Int, String>>()
         var arabic = 0

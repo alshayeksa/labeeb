@@ -35,3 +35,4 @@ viora-tauri/tools/out/
 # Website installers: copied from signed CI artifacts, deployed to Cloudflare, not committed
 *.dmg
 labeeb-wbsite/downloads/
+ios/fastlane/screenshots/

@@ -7,6 +7,10 @@ on:
         description: Sign the app and upload it to TestFlight instead of taking screenshots
         type: boolean
         default: false
+      appstore:
+        description: Upload the App Store page (texts and screenshots) to App Store Connect. Does not submit for review
+        type: boolean
+        default: false
   push:
     branches: [mobile-apps]
     paths:
@@ -17,12 +21,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: ios-${{ github.ref }}-${{ inputs.testflight && 'testflight' || 'screens' }}
+  group: ios-${{ github.ref }}-${{ inputs.testflight && 'testflight' || inputs.appstore && 'appstore' || 'screens' }}
   cancel-in-progress: true
 
 jobs:
   ios:
-    if: ${{ !inputs.testflight }}
+    if: ${{ !inputs.testflight && !inputs.appstore }}
     runs-on: xcode-27
     timeout-minutes: 40
     env:
@@ -221,3 +225,92 @@ jobs:
           APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: app-store-connect publish --path 'ios/build/ios/ipa/*.ipa'
+
+  # The App Store page, started by hand: Run workflow, branch mobile-apps, tick "appstore". It photographs
+  # the app on the largest iPhone in Arabic and English, then sends those pictures and the texts in
+  # ios/fastlane/metadata to App Store Connect. It never submits the app for review; that stays a
+  # deliberate click in App Store Connect.
+  appstore:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.appstore }}
+    runs-on: xcode-27
+    timeout-minutes: 60
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build for the simulator
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          cd ios && xcodegen generate
+          if ! xcodebuild -project Labeeb.xcodeproj -scheme Labeeb -configuration Debug \
+              -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+              -derivedDataPath build CODE_SIGNING_ALLOWED=NO build > build.log 2>&1; then
+            grep -E "error:|error :" build.log | sort -u | head -120
+            exit 1
+          fi
+
+      - name: Photograph the app in both languages
+        run: |
+          set -euo pipefail
+          APP=ios/build/Build/Products/Debug-iphonesimulator/Labeeb.app
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[6-9] Pro Max \(" | head -1 | grep -oE '[0-9A-F-]{36}')
+          xcrun simctl list devices available | grep "$UDID"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
+          xcrun simctl install "$UDID" "$APP"
+          for pair in ar-SA:ar en-US:en; do
+            locale=${pair%%:*}; lang=${pair##*:}
+            mkdir -p "ios/fastlane/screenshots/$locale"
+            n=0
+            for shot in home page reader assistant tabs menu; do
+              n=$((n + 1))
+              xcrun simctl terminate "$UDID" ai.alshaye.labeeb 2>/dev/null || true
+              # A launch argument overrides the stored language for this run only.
+              xcrun simctl launch "$UDID" ai.alshaye.labeeb -shot "$shot" -language "$lang"
+              sleep 14
+              xcrun simctl io "$UDID" screenshot "ios/fastlane/screenshots/$locale/0${n}_$shot.png"
+            done
+          done
+          sips -g pixelWidth -g pixelHeight ios/fastlane/screenshots/ar-SA/01_home.png
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: appstore-screenshots
+          path: ios/fastlane/screenshots
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Send the page to App Store Connect
+        env:
+          KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEY" ] || [ -z "$KEY_ID" ] || [ -z "$ISSUER_ID" ]; then
+            echo "::error::Missing the App Store Connect secrets; the pictures are in the appstore-screenshots artifact."
+            exit 1
+          fi
+          # The key is rebuilt from its own characters, as a pasted secret often loses its line breaks.
+          python3 - <<'PY'
+          import json, os, re
+          body = re.sub(r"\s+", "", re.sub(r"-----[A-Z ]+-----", "", os.environ["KEY"].replace("\\n", "\n")))
+          pem = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(body[i:i + 64] for i in range(0, len(body), 64)) + "\n-----END PRIVATE KEY-----\n"
+          path = os.path.join(os.environ["RUNNER_TEMP"], "asc.json")
+          with open(path, "w") as f:
+              json.dump({"key_id": os.environ["KEY_ID"].strip(), "issuer_id": os.environ["ISSUER_ID"].strip(), "key": pem, "in_house": False}, f)
+          os.chmod(path, 0o600)
+          PY
+          command -v fastlane >/dev/null || brew install fastlane
+          fastlane --version | tail -1
+          VERSION=$(grep MARKETING_VERSION ios/project.yml | grep -oE '[0-9]+(\.[0-9]+)+')
+          echo "App Store version $VERSION"
+          cd ios
+          fastlane deliver --api_key_path "$RUNNER_TEMP/asc.json" --app_identifier ai.alshaye.labeeb --platform ios \
+            --app_version "$VERSION" --metadata_path fastlane/metadata --screenshots_path fastlane/screenshots \
+            --skip_binary_upload true --overwrite_screenshots true --force true \
+            --submit_for_review false --run_precheck_before_submit false
+          rm -f "$RUNNER_TEMP/asc.json"

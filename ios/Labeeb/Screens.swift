@@ -569,6 +569,20 @@ struct AboutView: View {
                 .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.hairline))
                 .padding(.top, 28)
 
+                Button { open(AppSettings.shared.isArabic ? "https://labeeb.alshaye.ai/privacy/" : "https://labeeb.alshaye.ai/en/privacy/") } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "hand.raised").foregroundStyle(Palette.accent)
+                            .frame(width: 32, height: 32).background(Palette.accentSoft, in: RoundedRectangle(cornerRadius: 9))
+                        Text(t("privacy_policy")).font(.callout).foregroundStyle(Palette.text)
+                        Spacer(minLength: 0)
+                        Image(systemName: "arrow.up.forward").font(.footnote.weight(.semibold)).foregroundStyle(Palette.accent)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 12)
+                    .background(Palette.panel, in: RoundedRectangle(cornerRadius: 20))
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.hairline))
+                }
+                .padding(.top, 14)
+
                 Button { showLicenses = true } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "doc.text").foregroundStyle(Palette.accent)

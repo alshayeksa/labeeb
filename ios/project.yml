@@ -20,7 +20,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ai.alshaye.labeeb
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_PREVIEWS: NO
     info:

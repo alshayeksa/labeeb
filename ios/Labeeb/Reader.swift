@@ -9,6 +9,7 @@ struct ReaderView: View {
     @State private var translations: [Int: String] = [:]
     @State private var task: Task<Void, Never>?
     @State private var needKey = false
+    @State private var askConsent = false
     @State private var note: String?
     @Environment(\.dismiss) private var dismiss
     private static let maxTranslated = 60
@@ -89,6 +90,14 @@ struct ReaderView: View {
                 }
             }
             .noticeSheet(isPresented: $needKey, icon: "key.fill", title: t("need_key_title"), message: t("need_key"))
+            .sheet(isPresented: $askConsent) {
+                MessageSheet(icon: "paperplane.fill", title: t("ai_consent_title", AI.providers[settings.provider]?.label ?? ""),
+                             message: t("ai_consent"), primary: t("ai_consent_agree"), action: {
+                    AI.consent(settings.provider)
+                    DispatchQueue.main.async { translate() }
+                })
+                .labeebEnvironment()
+            }
             .noticeSheet(isPresented: Binding(get: { note != nil }, set: { if !$0 { note = nil } }), title: t("notice"), message: note)
         }
         .onDisappear { task?.cancel() }
@@ -104,6 +113,10 @@ struct ReaderView: View {
         let provider = settings.provider
         guard let key = Keychain.get(AI.providers[provider]?.keyName ?? ""), !key.isEmpty else {
             needKey = true
+            return
+        }
+        guard AI.consented(provider) else {
+            askConsent = true
             return
         }
         let passages = article.blocks.filter { $0.kind != "c" }

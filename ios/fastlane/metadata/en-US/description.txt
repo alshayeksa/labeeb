@@ -1,0 +1,33 @@
+Labeeb is a web browser designed for Arabic first, and fully usable in English. The interface runs right to left, the type is a clear Arabic face, and the controls sit within reach of your thumb in a single bottom bar.
+
+Comfortable browsing
+• Normal and private tabs, with a preview of each tab and swipe to close.
+• One address bar for searching and opening sites, with suggestions from your history and bookmarks.
+• Bookmarks, history and downloads in one library.
+• Find in page, desktop site, and dark or light appearance.
+• Run a favourite site as an app in its own window.
+
+Reading without distraction
+• Reading mode shows the article text alone, in a comfortable typeface at the size you choose.
+• Hijri dates shown beside Gregorian dates in articles.
+• Side-by-side translation places each paragraph's translation directly beneath it.
+• The Arabic web fixer gives Arabic text a clear typeface and its natural direction on sites that neglect it.
+
+An optional AI assistant
+• Summarise the page, have it explained simply, translate it, or ask anything.
+• Works with your own API key from OpenAI, Anthropic or DeepSeek, and connects to the provider directly from your device.
+• Page text is sent only when you choose to attach it, and Labeeb asks for your agreement before the first time.
+
+Labeeb Memory
+• Ask about something you read before, and Labeeb searches the text of the pages you visited.
+• The index stays on your device only, and private tabs never enter it.
+
+Your privacy stays on your device
+• No account, no ads, no tracking.
+• History, bookmarks and settings are stored on your device only.
+• Passwords are stored encrypted in the Keychain and filled in only after Face ID or your device passcode.
+• The camera and microphone open for a site only with your permission.
+
+Labeeb is developed by Shaye Alshaye in Saudi Arabia.
+
+Note: the AI assistant needs an API key that you obtain from the provider you choose, and the provider may charge for usage. Every other feature of the browser works without a key.

@@ -137,6 +137,11 @@ class AssistantSheet(private val a: MainActivity) {
                 primary = a.getString(R.string.open_settings)) { a.startActivity(Intent(a, SettingsActivity::class.java)) }
             return
         }
+        // Nothing leaves the device for a provider until the user has agreed to it once.
+        if (!Ai.consented(provider)) {
+            Ai.askConsent(a, provider) { ask(text, attachPage) }
+            return
+        }
         if (!attachPage) {
             start(provider, key, ChatMsg("user", text))
             input.setText("")

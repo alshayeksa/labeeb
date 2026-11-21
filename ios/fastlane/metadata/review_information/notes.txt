@@ -1,0 +1,9 @@
+Labeeb is a web browser built on WKWebView. No account or sign-in is needed, and every browsing feature works as soon as the app opens.
+
+The AI assistant is optional and uses the user's own API key (OpenAI, Anthropic or DeepSeek), entered in Settings > Assistant. Without a key the assistant shows a message asking for one; nothing else in the app depends on it. Before the first request to a provider the app shows a sheet naming the provider and what is sent, and sends nothing unless the user agrees. Requests go from the device straight to the provider; the developer operates no server.
+
+The app collects no data. History, bookmarks, the reading memory index and settings are stored on the device; saved passwords and API keys are stored in the Keychain and are filled in or shown only after Face ID or the device passcode.
+
+Camera and microphone are used only when a website requests them and the user allows that site.
+
+The interface language is Arabic by default; English is available from the language button on the home screen or in Settings.

@@ -24,6 +24,12 @@ Repository secrets it needs: `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSU
 
 `codemagic.yaml` at the repository root is an equivalent workflow for Codemagic, kept as an alternative.
 
+## App Store page
+
+The store texts live in `fastlane/metadata` (Arabic and English). The manual job `appstore` in the same workflow (Run workflow, tick "appstore") photographs the app on the largest iPhone in both languages and sends the pictures and texts to App Store Connect. It never submits for review.
+
+Set by hand in App Store Connect, because they are answers only the owner can give: the age rating questionnaire, the App Privacy answers, price and availability, the review contact, and the build attached to the version. The privacy policy is built with the website (`labeeb-wbsite`, pages `/privacy/` and `/en/privacy/`).
+
 ## Continuous build
 
 `.github/workflows/ios-build.yml` builds for the simulator on every push to `mobile-apps` that touches `ios/`,

@@ -122,11 +122,9 @@ struct BrowserView: View {
         } message: { offer in
             Text(Web.host(offer.origin) + "\n" + (offer.username.isEmpty ? t("no_username") : offer.username))
         }
-        .confirmationDialog(t("choose_account"), isPresented: $chooseAccount, titleVisibility: .visible) {
+        .sheet(isPresented: $chooseAccount) {
             if let tab = model.current {
-                ForEach(tab.fill) { credential in
-                    Button(credential.username.isEmpty ? t("no_username") : credential.username) { model.fill(credential, in: tab) }
-                }
+                AccountSheet(host: Web.host(tab.url), accounts: tab.fill) { model.fill($0, in: tab) }.labeebEnvironment()
             }
         }
         .onOpenURL { url in
@@ -398,6 +396,14 @@ struct BrowserView: View {
         case "tabs":
             model.load(sample)
             later(7) { openTabs() }
+        case "accounts":
+            model.load(sample)
+            later(6) {
+                model.current?.fill = [Credential(id: 1, origin: "https://ar.wikipedia.org", username: "reader@example.com"),
+                                       Credential(id: 2, origin: "https://ar.wikipedia.org", username: "editor.account@example.org"),
+                                       Credential(id: 3, origin: "https://ar.wikipedia.org", username: "")]
+                chooseAccount = true
+            }
         case "confirm":
             model.load(sample)
             later(7) { openTabs() }

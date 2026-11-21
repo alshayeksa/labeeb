@@ -665,5 +665,71 @@ extension View {
     }
 }
 
+/// The saved accounts for the site in front of the user, in the same sheet as Labeeb's confirmations.
+struct AccountSheet: View {
+    let host: String
+    let accounts: [Credential]
+    let pick: (Credential) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var height: CGFloat = 360
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Image(systemName: "key.fill").font(.system(size: 22, weight: .semibold)).foregroundStyle(Palette.accent)
+                .frame(width: 60, height: 60).background(Palette.accentSoft, in: Circle())
+                .accessibilityHidden(true)
+            Text(t("choose_account")).font(.title3.weight(.bold)).foregroundStyle(Palette.text).padding(.top, 16)
+            Text(host).font(.subheadline).foregroundStyle(Palette.muted).padding(.top, 4)
+                .environment(\.layoutDirection, .leftToRight)
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
+                        Button {
+                            pick(account)
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 12) {
+                                LetterTile(name: account.username.isEmpty ? host : account.username)
+                                Text(account.username.isEmpty ? t("no_username") : account.username)
+                                    .font(.body).foregroundStyle(Palette.text).lineLimit(1).truncationMode(.middle)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, 14)
+                            .frame(height: 56)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        if index < accounts.count - 1 { Divider().overlay(Palette.hairline).padding(.leading, 60) }
+                    }
+                }
+            }
+            .frame(height: CGFloat(min(accounts.count, 5)) * 56 + CGFloat(max(min(accounts.count, 5) - 1, 0)))
+            .scrollBounceBehavior(.basedOnSize)
+            .background(Palette.surface, in: RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.top, 20)
+
+            Button { dismiss() } label: {
+                Text(t("cancel")).font(.body.weight(.semibold)).foregroundStyle(Palette.text)
+                    .frame(maxWidth: .infinity).frame(height: 52)
+                    .background(Palette.surface, in: RoundedRectangle(cornerRadius: 16))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 10)
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 24)
+        .padding(.top, 34)
+        .padding(.bottom, 12)
+        .fixedSize(horizontal: false, vertical: true)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+        .presentationDetents([.height(height)])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(Palette.panel)
+    }
+}
+
 /// A label turned into the question a confirmation asks.
 func asked(_ text: String) -> String { text + (AppSettings.shared.isArabic ? "\u{061F}" : "?") }

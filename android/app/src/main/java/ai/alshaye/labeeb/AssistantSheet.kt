@@ -13,7 +13,6 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -42,15 +41,21 @@ class AssistantSheet(private val a: MainActivity) {
     init {
         dialog.setContentView(root)
         dialog.behavior.skipCollapsed = true
+        // The panel fills the screen and cannot be dragged: moving a finger over an answer scrolls the
+        // answer, and only the close button or Back puts the panel away.
+        dialog.behavior.isDraggable = false
         dialog.setOnShowListener {
-            // A tall panel that still leaves the page visible above it.
             dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)?.let {
-                it.layoutParams.height = (a.resources.displayMetrics.heightPixels * 0.78f).toInt()
+                it.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
                 it.requestLayout()
             }
             dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            Toasts.enter(dialog.findViewById(android.R.id.content))
         }
-        dialog.setOnDismissListener { Prefs.sp.edit().putString("chat_draft", input.text.toString()).apply() }
+        dialog.setOnDismissListener {
+            Toasts.leave(dialog.findViewById(android.R.id.content))
+            Prefs.sp.edit().putString("chat_draft", input.text.toString()).apply()
+        }
 
         root.findViewById<View>(R.id.aClose).setOnClickListener { dialog.dismiss() }
         root.findViewById<View>(R.id.aNew).setOnClickListener {
@@ -128,12 +133,8 @@ class AssistantSheet(private val a: MainActivity) {
         val provider = Prefs.provider
         val key = Secrets.get(a, Ai.providers.getValue(provider).keyName)
         if (key.isNullOrBlank()) {
-            MaterialAlertDialogBuilder(a)
-                .setTitle(R.string.need_key_title)
-                .setMessage(R.string.need_key)
-                .setPositiveButton(R.string.open_settings) { _, _ -> a.startActivity(Intent(a, SettingsActivity::class.java)) }
-                .setNegativeButton(R.string.cancel, null)
-                .show()
+            Sheets.message(a, R.drawable.ic_key, a.getString(R.string.need_key_title), a.getString(R.string.need_key),
+                primary = a.getString(R.string.open_settings)) { a.startActivity(Intent(a, SettingsActivity::class.java)) }
             return
         }
         if (!attachPage) {
@@ -246,8 +247,9 @@ class AssistantSheet(private val a: MainActivity) {
             gravity = if (user) Gravity.START else Gravity.END
             setPadding(if (user) 0 else 0, a.dp(6), 0, a.dp(6))
         }
-        val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        if (user) lp.marginEnd = a.dp(48) else lp.marginStart = a.dp(16)
+        // A reply takes the full width of the panel so long answers read comfortably; the user's turns stay short bubbles.
+        val lp = LinearLayout.LayoutParams(if (user) ViewGroup.LayoutParams.WRAP_CONTENT else ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        if (user) lp.marginEnd = a.dp(48)
         holder.addView(box, lp)
         return holder
     }

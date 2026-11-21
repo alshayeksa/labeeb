@@ -37,6 +37,7 @@ Video and audio download, the media library, multi-connection downloads, custom 
 | --- | --- |
 | `MainActivity.kt` | Tabs, navigation, bottom bar, home, tabs overlay, menu |
 | `Web.kt` | WebView settings, downloads, external links, voice input |
+| `Sheets.kt` | The one message sheet (confirmations, notices, choices, fields) and the in-app notice card |
 | `SiteApps.kt` | Run as app: install flow and the standalone window |
 | `AssistantSheet.kt`, `Ai.kt` | Assistant panel, provider client, key storage |
 | `Screens.kt` | Library (bookmarks, history, downloads) and settings |

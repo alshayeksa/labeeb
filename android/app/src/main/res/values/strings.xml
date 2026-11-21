@@ -56,8 +56,10 @@
     <string name="add_site">إضافة موقع</string>
     <string name="site_name">الاسم</string>
     <string name="site_url">العنوان</string>
-    <string name="remove_site">إزالة «%1$s» من مواقعك؟</string>
-    <string name="remove_app">إزالة التطبيق «%1$s»؟ أزل أيقونته من الشاشة الرئيسية يدويًا.</string>
+    <string name="remove_site_title">إزالة الموقع؟</string>
+    <string name="remove_site">سيُزال «%1$s» من مواقعك.</string>
+    <string name="remove_app_title">إزالة التطبيق؟</string>
+    <string name="remove_app">سيُزال «%1$s» من تطبيقاتك. أزل أيقونته من الشاشة الرئيسية يدويًا.</string>
     <string name="perm_request">يطلب الموقع %1$s استخدام: %2$s</string>
     <string name="perm_mic">الميكروفون</string>
     <string name="perm_camera">الكاميرا</string>
@@ -188,7 +190,8 @@
     <string name="passwords_note">تُحفظ مشفّرة في هذا الجهاز فقط، ويُطلب قفل الشاشة أو البصمة قبل تعبئتها أو إظهارها.</string>
     <string name="saved_count">%1$s محفوظة</string>
     <string name="tabs_total">عدد التبويبات: %1$s</string>
-    <string name="close_all_confirm">إغلاق كل التبويبات المعروضة؟</string>
+    <string name="close_all_confirm">إغلاق كل التبويبات؟</string>
+    <string name="close_all_message">ستُغلق التبويبات المعروضة وعددها %1$s، ولا يمكن استرجاعها.</string>
     <string name="always_allow">السماح دائمًا لهذا الموقع</string>
     <string name="memory">ذاكرة لبيب</string>
     <string name="memory_hint">اسأل عمّا قرأته…</string>
@@ -209,4 +212,9 @@
     <string name="reader_translate">ترجمة ثنائية</string>
     <string name="reader_translating">جارٍ الترجمة…</string>
     <string name="reader_translated_part">تُرجم الجزء الأول من المقال فقط</string>
+    <string name="notice">تنبيه</string>
+    <string name="saved_password">كلمة المرور المحفوظة</string>
+    <string name="save_password_note">تُحفظ مشفّرة في هذا الجهاز فقط، ولا تُعبّأ إلا بعد التحقق من هويتك.</string>
+    <string name="add_site_note">يظهر الموقع في الصفحة الرئيسية لتصل إليه بلمسة.</string>
+    <string name="link">رابط</string>
 </resources>

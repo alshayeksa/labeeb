@@ -13,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.json.JSONObject
 
 class Credential(val id: Long, val origin: String, val username: String)
@@ -163,11 +162,7 @@ class PasswordsActivity : ListScreen() {
 
     private fun reveal(cred: Credential) = Vault.verify(this) {
         val secret = Vault.password(this, cred.id) ?: return@verify
-        MaterialAlertDialogBuilder(this)
-            .setTitle(Vault.host(cred.origin))
-            .setMessage(cred.username.ifEmpty { getString(R.string.no_username) } + "\n\n" + secret)
-            .setPositiveButton(R.string.copy_password) { _, _ -> copy(secret) }
-            .setNegativeButton(R.string.close, null)
-            .show()
+        Sheets.message(this, R.drawable.ic_key, getString(R.string.saved_password), primary = getString(R.string.copy_password),
+            secondary = getString(R.string.close), extra = Sheets.account(this, Vault.host(cred.origin), cred.username, secret)) { copy(secret) }
     }
 }

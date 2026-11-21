@@ -18,7 +18,6 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
@@ -97,6 +96,32 @@ object Web {
         c.startActivity(Intent.createChooser(send, null))
     }
 
+    // A page's own alert, question and text request, in Labeeb's sheet. Each is answered exactly once,
+    // also when the sheet is swiped away, because the page waits for the answer.
+
+    private fun pageTitle(c: Context, url: String?) = Urls.host(url).ifEmpty { c.getString(R.string.notice) }
+
+    fun pageAlert(a: Activity, url: String?, message: String?, result: android.webkit.JsResult): Boolean {
+        if (a.isFinishing || a.isDestroyed) return false
+        Sheets.message(a, R.drawable.ic_globe, pageTitle(a, url), message?.take(2000), onDismiss = { result.confirm() })
+        return true
+    }
+
+    fun pageConfirm(a: Activity, url: String?, message: String?, result: android.webkit.JsResult): Boolean {
+        if (a.isFinishing || a.isDestroyed) return false
+        Sheets.message(a, R.drawable.ic_globe, pageTitle(a, url), message?.take(2000), primary = a.getString(R.string.ok),
+            onDismiss = { result.cancel() }) { result.confirm() }
+        return true
+    }
+
+    fun pagePrompt(a: Activity, url: String?, message: String?, value: String?, result: android.webkit.JsPromptResult): Boolean {
+        if (a.isFinishing || a.isDestroyed) return false
+        val field = Sheets.field(a, null, value.orEmpty().take(2000))
+        Sheets.message(a, R.drawable.ic_globe, pageTitle(a, url), message?.take(2000), primary = a.getString(R.string.ok),
+            extra = field, focus = field, onDismiss = { result.cancel() }) { result.confirm(field.text.toString()) }
+        return true
+    }
+
     fun destroy(w: WebView) {
         (w.parent as? ViewGroup)?.removeView(w)
         w.stopLoading()
@@ -139,17 +164,12 @@ object Voice {
 
     private fun unavailable(a: Activity) {
         val store = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.google.android.googlequicksearchbox"))
-        val builder = MaterialAlertDialogBuilder(a)
-            .setTitle(R.string.voice_unavailable_title)
-            .setMessage(R.string.voice_unavailable)
-            .setNegativeButton(R.string.close, null)
         // Offer the install only where a store can actually open it.
-        if (store.resolveActivity(a.packageManager) != null) {
-            builder.setPositiveButton(R.string.install_service) { _, _ ->
-                try { a.startActivity(store) } catch (_: Exception) {}
-            }
+        val install = if (store.resolveActivity(a.packageManager) != null) a.getString(R.string.install_service) else null
+        Sheets.message(a, R.drawable.ic_mic, a.getString(R.string.voice_unavailable_title), a.getString(R.string.voice_unavailable),
+            primary = install, secondary = a.getString(R.string.close)) {
+            try { a.startActivity(store) } catch (_: Exception) {}
         }
-        builder.show()
     }
 }
 
@@ -207,17 +227,14 @@ class SitePermissions(private val a: androidx.appcompat.app.AppCompatActivity) {
         val names = resources.joinToString(if (a.isArabic()) "، " else ", ") {
             a.getString(if (it == android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE) R.string.perm_mic else R.string.perm_camera)
         }
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(a)
-            .setMessage(a.getString(R.string.perm_request, Vault.host(origin), names))
-            .setPositiveButton(R.string.allow) { _, _ -> proceed(req, resources) }
-            .setNeutralButton(R.string.always_allow) { _, _ ->
+        val camera = resources.any { it == android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE }
+        Sheets.message(a, if (camera) R.drawable.ic_globe else R.drawable.ic_mic, Vault.host(origin),
+            a.getString(R.string.perm_request, Vault.host(origin), names), primary = a.getString(R.string.allow),
+            secondary = a.getString(R.string.deny), other = a.getString(R.string.always_allow), onOther = {
                 val all = HashSet(Prefs.sp.getStringSet("site_permissions", emptySet())!!)
                 for (r in resources) all.add("$origin|$r")
                 Prefs.sp.edit().putStringSet("site_permissions", all).apply()
                 proceed(req, resources)
-            }
-            .setNegativeButton(R.string.deny) { _, _ -> req.deny() }
-            .setOnCancelListener { req.deny() }
-            .show()
+            }, onDismiss = { req.deny() }) { proceed(req, resources) }
     }
 }

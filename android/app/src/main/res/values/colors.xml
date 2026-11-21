@@ -10,6 +10,7 @@
     <color name="accent_soft">#DCEFE8</color>
     <color name="hairline">#DDE5EC</color>
     <color name="danger">#A12242</color>
+    <color name="on_danger">#FFFFFF</color>
     <color name="danger_soft">#F9E5EB</color>
     <color name="warn">#805114</color>
 </resources>

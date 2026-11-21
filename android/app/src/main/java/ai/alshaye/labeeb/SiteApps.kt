@@ -29,7 +29,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
@@ -147,37 +146,21 @@ object SiteApps {
 
     private fun confirm(a: AppCompatActivity, draft: Draft) {
         val size = a.dp(64)
-        val box = LinearLayout(a).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(a.dp(24), a.dp(12), a.dp(24), 0)
-        }
         val row = LinearLayout(a).apply { gravity = Gravity.CENTER_VERTICAL }
         val preview = ImageView(a)
-        val name = EditText(a).apply {
-            setText(draft.name)
-            isSingleLine = true
-            hint = a.getString(R.string.site_name)
-        }
+        val name = Sheets.field(a, a.getString(R.string.site_name), draft.name)
         fun icon(label: String) = draft.icon?.let { Icons.rounded(it, 192) } ?: Icons.letter(a, label, 192)
         preview.setImageBitmap(icon(draft.name))
         row.addView(preview, LinearLayout.LayoutParams(size, size))
         row.addView(name, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = a.dp(16) })
-        box.addView(TextView(a).apply {
-            setText(R.string.app_install_msg)
-            textSize = 14f
-            setLineSpacing(0f, 1.25f)
-            setPadding(0, 0, 0, a.dp(16))
-        })
-        box.addView(row)
-        MaterialAlertDialogBuilder(a).setTitle(R.string.app_install_title).setView(box)
-            .setPositiveButton(R.string.add) { _, _ ->
-                val label = name.text.toString().trim().ifBlank { draft.name }
-                val bitmap = icon(label)
-                val id = Store.get(a).addApp(label, draft.url, draft.color, bitmap)
-                pin(a, id, label, Icons.adaptive(a, draft.icon, label))
-                a.toast(R.string.app_added)
-            }
-            .setNegativeButton(R.string.cancel, null).show()
+        Sheets.message(a, R.drawable.ic_app_add, a.getString(R.string.app_install_title), a.getString(R.string.app_install_msg),
+            primary = a.getString(R.string.add), extra = row) {
+            val label = name.text.toString().trim().ifBlank { draft.name }
+            val bitmap = icon(label)
+            val id = Store.get(a).addApp(label, draft.url, draft.color, bitmap)
+            pin(a, id, label, Icons.adaptive(a, draft.icon, label))
+            a.toast(R.string.app_added)
+        }
     }
 
     private fun intent(c: Context, id: Long) =
@@ -222,7 +205,7 @@ class SiteAppActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val found = intent.data?.lastPathSegment?.toLongOrNull()?.let { Store.get(this).app(it) }
         if (found == null) {
-            toast(R.string.app_missing)
+            applicationContext.toast(R.string.app_missing)
             finish()
             return
         }
@@ -279,6 +262,15 @@ class SiteAppActivity : AppCompatActivity() {
             }
 
             override fun onPermissionRequest(request: android.webkit.PermissionRequest) = sitePermissions.ask(request)
+
+            override fun onJsAlert(view: WebView, url: String?, message: String?, result: android.webkit.JsResult) =
+                Web.pageAlert(this@SiteAppActivity, url, message, result)
+
+            override fun onJsConfirm(view: WebView, url: String?, message: String?, result: android.webkit.JsResult) =
+                Web.pageConfirm(this@SiteAppActivity, url, message, result)
+
+            override fun onJsPrompt(view: WebView, url: String?, message: String?, defaultValue: String?, result: android.webkit.JsPromptResult) =
+                Web.pagePrompt(this@SiteAppActivity, url, message, defaultValue, result)
 
             override fun onShowFileChooser(view: WebView, callback: ValueCallback<Array<Uri>>, params: FileChooserParams): Boolean {
                 fileCallback?.onReceiveValue(null)

@@ -47,7 +47,6 @@ import android.widget.Space
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
@@ -446,6 +445,15 @@ class MainActivity : AppCompatActivity() {
 
         override fun onPermissionRequest(request: PermissionRequest) = sitePermissions.ask(request)
 
+        override fun onJsAlert(view: WebView, url: String?, message: String?, result: android.webkit.JsResult) =
+            Web.pageAlert(this@MainActivity, url, message, result)
+
+        override fun onJsConfirm(view: WebView, url: String?, message: String?, result: android.webkit.JsResult) =
+            Web.pageConfirm(this@MainActivity, url, message, result)
+
+        override fun onJsPrompt(view: WebView, url: String?, message: String?, defaultValue: String?, result: android.webkit.JsPromptResult) =
+            Web.pagePrompt(this@MainActivity, url, message, defaultValue, result)
+
         override fun onCreateWindow(view: WebView, isDialog: Boolean, isUserGesture: Boolean, resultMsg: Message): Boolean {
             if (!isUserGesture) return false
             val t = newTab(tab.private)
@@ -494,23 +502,22 @@ class MainActivity : AppCompatActivity() {
         val image = hit.type == WebView.HitTestResult.IMAGE_TYPE || hit.type == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE
         if (!image && hit.type != WebView.HitTestResult.SRC_ANCHOR_TYPE) return false
         if (!Urls.isWeb(target)) return false
-        val items = ArrayList<Pair<Int, () -> Unit>>()
-        items.add(R.string.open_in_new_tab to {
+        val items = ArrayList<Triple<Int, Int, () -> Unit>>()
+        items.add(Triple(R.string.open_in_new_tab, R.drawable.ic_plus) {
             val t = newTab(tab.private)
             navigate(t, target)
         })
-        if (image) items.add(R.string.download_image to {
+        if (image) items.add(Triple(R.string.download_image, R.drawable.ic_download) {
             Web.download(this, target, w.settings.userAgentString, null, null, cookies(tab, target))
         })
-        items.add(R.string.copy_link to {
+        items.add(Triple(R.string.copy_link, R.drawable.ic_copy) {
             (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("url", target))
             toast(R.string.link_copied)
         })
-        items.add(R.string.share to { Web.share(this, target, null) })
-        MaterialAlertDialogBuilder(this)
-            .setTitle(target.take(90))
-            .setItems(items.map { getString(it.first) }.toTypedArray()) { _, i -> items[i].second() }
-            .show()
+        items.add(Triple(R.string.share, R.drawable.ic_share) { Web.share(this, target, null) })
+        // The address is shown left to right whatever the language, and cut short when it runs long.
+        Sheets.list(this, R.drawable.ic_globe, Urls.host(target).ifEmpty { getString(R.string.link) }, "\u2066" + target.take(120) + "\u2069",
+            items.map { Sheets.Row(getString(it.first), it.second) }) { items[it].third() }
         return true
     }
 
@@ -800,9 +807,10 @@ class MainActivity : AppCompatActivity() {
             val t = tile(app.name, icon)
             t.setOnClickListener { SiteApps.launch(this, app.id) }
             t.setOnLongClickListener {
-                MaterialAlertDialogBuilder(this).setMessage(getString(R.string.remove_app, app.name))
-                    .setPositiveButton(R.string.remove) { _, _ -> SiteApps.remove(this, app.id); refreshHome() }
-                    .setNegativeButton(R.string.cancel, null).show()
+                Sheets.confirm(this, getString(R.string.remove_app_title), getString(R.string.remove_app, app.name), getString(R.string.remove)) {
+                    SiteApps.remove(this, app.id)
+                    refreshHome()
+                }
                 true
             }
             appsGrid.addView(t)
@@ -823,9 +831,10 @@ class MainActivity : AppCompatActivity() {
             val t = tile(name, letter)
             t.setOnClickListener { load(site.url) }
             t.setOnLongClickListener {
-                MaterialAlertDialogBuilder(this).setMessage(getString(R.string.remove_site, name))
-                    .setPositiveButton(R.string.remove) { _, _ -> store.removeBookmark(site.url); refreshHome() }
-                    .setNegativeButton(R.string.cancel, null).show()
+                Sheets.confirm(this, getString(R.string.remove_site_title), getString(R.string.remove_site, name), getString(R.string.remove)) {
+                    store.removeBookmark(site.url)
+                    refreshHome()
+                }
                 true
             }
             sitesGrid.addView(t)
@@ -853,29 +862,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun addSiteDialog() {
-        val box = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(8), dp(24), 0)
-        }
-        val name = EditText(this).apply { hint = getString(R.string.site_name); isSingleLine = true }
-        val url = EditText(this).apply {
-            hint = getString(R.string.site_url)
-            isSingleLine = true
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI
-            textDirection = View.TEXT_DIRECTION_LTR
-        }
-        box.addView(name)
-        box.addView(url)
-        MaterialAlertDialogBuilder(this).setTitle(R.string.add_site).setView(box)
-            .setPositiveButton(R.string.add) { _, _ ->
-                val raw = url.text.toString().trim()
-                if (raw.isNotEmpty()) {
-                    val full = if (Urls.isWeb(raw)) raw else "https://$raw"
-                    store.addBookmark(full, name.text.toString().trim())
-                    refreshHome()
-                }
+        val name = Sheets.field(this, getString(R.string.site_name))
+        val url = Sheets.field(this, getString(R.string.site_url), address = true)
+        Sheets.message(this, R.drawable.ic_plus, getString(R.string.add_site), getString(R.string.add_site_note),
+            primary = getString(R.string.add), extra = Sheets.stack(this, name, url), focus = name) {
+            val raw = url.text.toString().trim()
+            if (raw.isNotEmpty()) {
+                val full = if (Urls.isWeb(raw)) raw else "https://$raw"
+                store.addBookmark(full, name.text.toString().trim())
+                refreshHome()
             }
-            .setNegativeButton(R.string.cancel, null).show()
+        }
     }
 
     // ---- Tabs overlay ----
@@ -913,11 +910,8 @@ class MainActivity : AppCompatActivity() {
             }
             // One tab closes at once; several are confirmed first, since they cannot be brought back.
             if (shown.size <= 1) closeAll()
-            else com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setMessage(R.string.close_all_confirm)
-                .setPositiveButton(R.string.close_all) { _, _ -> closeAll() }
-                .setNegativeButton(R.string.cancel, null)
-                .show()
+            else Sheets.confirm(this, getString(R.string.close_all_confirm), getString(R.string.close_all_message, num(shown.size)),
+                getString(R.string.close_all), icon = R.drawable.ic_close) { closeAll() }
         }
     }
 
@@ -1195,16 +1189,12 @@ class MainActivity : AppCompatActivity() {
         if (android.os.SystemClock.uptimeMillis() - offer.time > 30000 || Vault.origin(url) != offer.origin || isFinishing) return
         val existing = Vault.list(this, offer.origin).firstOrNull { it.username == offer.username }
         if (existing != null && Vault.password(this, existing.id) == offer.password) return
-        val who = offer.username.ifEmpty { getString(R.string.no_username) }
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle(if (existing == null) R.string.save_password_title else R.string.update_password_title)
-            .setMessage(Vault.host(offer.origin) + "\n" + who)
-            .setPositiveButton(if (existing == null) R.string.save else R.string.update) { _, _ ->
-                Vault.save(this, offer.origin, offer.username, offer.password)
-                toast(R.string.password_saved)
-            }
-            .setNegativeButton(R.string.not_now, null)
-            .show()
+        Sheets.message(this, R.drawable.ic_key, getString(if (existing == null) R.string.save_password_title else R.string.update_password_title),
+            getString(R.string.save_password_note), primary = getString(if (existing == null) R.string.save else R.string.update),
+            secondary = getString(R.string.not_now), extra = Sheets.account(this, Vault.host(offer.origin), offer.username)) {
+            Vault.save(this, offer.origin, offer.username, offer.password)
+            toast(R.string.password_saved)
+        }
     }
 
     /** Shows the fill strip when the page has a sign-in form and a login is stored for this exact site. */
@@ -1248,10 +1238,8 @@ class MainActivity : AppCompatActivity() {
         when {
             saved.isEmpty() -> hideFill()
             saved.size == 1 -> fill(saved[0])
-            else -> com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.choose_account)
-                .setItems(saved.map { it.username.ifEmpty { getString(R.string.no_username) } }.toTypedArray()) { _, i -> fill(saved[i]) }
-                .show()
+            else -> Sheets.list(this, R.drawable.ic_key, getString(R.string.choose_account), Vault.host(origin),
+                saved.map { Sheets.Row(it.username.ifEmpty { getString(R.string.no_username) }, letter = it.username.ifEmpty { Vault.host(origin) }) }) { fill(saved[it]) }
         }
     }
 

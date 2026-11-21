@@ -56,8 +56,10 @@
     <string name="add_site">Add site</string>
     <string name="site_name">Name</string>
     <string name="site_url">Address</string>
-    <string name="remove_site">Remove “%1$s” from your sites?</string>
-    <string name="remove_app">Remove the app “%1$s”? Remove its home-screen icon yourself.</string>
+    <string name="remove_site_title">Remove the site?</string>
+    <string name="remove_site">“%1$s” will be removed from your sites.</string>
+    <string name="remove_app_title">Remove the app?</string>
+    <string name="remove_app">“%1$s” will be removed from your apps. Remove its home-screen icon yourself.</string>
     <string name="perm_request">%1$s wants to use: %2$s</string>
     <string name="perm_mic">Microphone</string>
     <string name="perm_camera">Camera</string>
@@ -186,7 +188,8 @@
     <string name="passwords_note">Stored encrypted on this device only. Your screen lock or fingerprint is required before filling or showing them.</string>
     <string name="saved_count">%1$s saved</string>
     <string name="tabs_total">%1$s open</string>
-    <string name="close_all_confirm">Close all the tabs shown?</string>
+    <string name="close_all_confirm">Close all tabs?</string>
+    <string name="close_all_message">The %1$s tabs shown will be closed and cannot be brought back.</string>
     <string name="always_allow">Always allow for this site</string>
     <string name="memory">Labeeb Memory</string>
     <string name="memory_hint">Ask about something you read…</string>
@@ -207,4 +210,9 @@
     <string name="reader_translate">Side-by-side translation</string>
     <string name="reader_translating">Translating…</string>
     <string name="reader_translated_part">Only the first part of the article was translated</string>
+    <string name="notice">Notice</string>
+    <string name="saved_password">Saved password</string>
+    <string name="save_password_note">Stored encrypted on this device only, and filled in only after you confirm it is you.</string>
+    <string name="add_site_note">The site appears on the home page, one tap away.</string>
+    <string name="link">Link</string>
 </resources>

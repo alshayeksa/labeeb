@@ -10,7 +10,6 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.net.Uri
 import android.util.TypedValue
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.res.ResourcesCompat
 import java.net.URLEncoder
@@ -103,8 +102,10 @@ object Urls {
 
 fun Context.dp(v: Float): Int = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, resources.displayMetrics).toInt()
 fun Context.dp(v: Int): Int = dp(v.toFloat())
-fun Context.toast(text: CharSequence) = Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
-fun Context.toast(res: Int) = Toast.makeText(this, res, Toast.LENGTH_SHORT).show()
+fun Context.toast(text: CharSequence) = Toasts.show(this, text)
+fun Context.toast(res: Int) = Toasts.show(this, getString(res))
+/** A label turned into the question a confirmation asks. */
+fun Context.asked(text: CharSequence): String = text.toString() + if (isArabic()) "\u061F" else "?"
 fun Context.num(n: Int): String = NumberFormat.getIntegerInstance(resources.configuration.locales[0]).format(n)
 fun Context.isArabic(): Boolean = resources.configuration.locales[0].language == "ar"
 

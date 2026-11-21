@@ -35,7 +35,6 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import androidx.core.view.WindowCompat
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.util.Calendar
 
 /**
@@ -311,9 +310,10 @@ class LibraryActivity : ListScreen() {
                     action.setText(R.string.clear)
                     action.contentDescription = getString(R.string.clear_history)
                     action.setOnClickListener {
-                        MaterialAlertDialogBuilder(this).setTitle(R.string.clear_history).setMessage(R.string.clear_history_confirm)
-                            .setPositiveButton(R.string.clear_history) { _, _ -> store.clearHistory(); render() }
-                            .setNegativeButton(R.string.cancel, null).show()
+                        Sheets.confirm(this, asked(getString(R.string.clear_history)), getString(R.string.clear_history_confirm), getString(R.string.clear_history)) {
+                            store.clearHistory()
+                            render()
+                        }
                     }
                 }
                 val bounds = dayBounds()
@@ -414,36 +414,24 @@ class SettingsActivity : ListScreen() {
     }
 
     private fun choose(title: Int, labels: List<String>, selected: Int, pick: (Int) -> Unit) {
-        MaterialAlertDialogBuilder(this).setTitle(title)
-            .setSingleChoiceItems(labels.toTypedArray(), selected) { d, i ->
-                d.dismiss()
-                pick(i)
-            }
-            .setNegativeButton(R.string.cancel, null).show()
+        Sheets.list(this, R.drawable.ic_settings, getString(title), rows = labels.map { Sheets.Row(it) }, selected = selected, pick = pick)
     }
 
     private fun input(title: Int, value: String, hint: String?, secret: Boolean, extra: Pair<Int, () -> Unit>? = null, save: (String) -> Unit) {
-        val field = EditText(this).apply {
-            setText(value)
-            this.hint = hint
-            isSingleLine = true
-            textDirection = View.TEXT_DIRECTION_LTR
-            inputType = InputType.TYPE_CLASS_TEXT or
-                (if (secret) InputType.TYPE_TEXT_VARIATION_PASSWORD else InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
+        val field = Sheets.field(this, hint, value, address = !secret, secret = secret)
+        if (!secret) field.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+        Sheets.message(this, if (secret) R.drawable.ic_key else R.drawable.ic_settings, getString(title), primary = getString(R.string.save),
+            extra = field, focus = field, other = extra?.let { getString(it.first) }, onOther = { extra?.second?.invoke(); render() }) {
+            save(field.text.toString().trim())
+            render()
         }
-        val box = LinearLayout(this).apply { setPadding(dp(24), dp(8), dp(24), 0) }
-        box.addView(field, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        val builder = MaterialAlertDialogBuilder(this).setTitle(title).setView(box)
-            .setPositiveButton(R.string.save) { _, _ -> save(field.text.toString().trim()); render() }
-            .setNegativeButton(R.string.cancel, null)
-        if (extra != null) builder.setNeutralButton(extra.first) { _, _ -> extra.second(); render() }
-        builder.show()
     }
 
     private fun confirm(title: Int, message: Int, run: () -> Unit) {
-        MaterialAlertDialogBuilder(this).setTitle(title).setMessage(message)
-            .setPositiveButton(title) { _, _ -> run(); toast(R.string.done) }
-            .setNegativeButton(R.string.cancel, null).show()
+        Sheets.confirm(this, asked(getString(title)), getString(message), getString(title)) {
+            run()
+            toast(R.string.done)
+        }
     }
 
     /** A row that flips a setting in place and shows its state. */
@@ -659,8 +647,7 @@ class AboutActivity : ListScreen() {
 
         g = group(16)
         item(g, iconTile(R.drawable.ic_doc), getString(R.string.licenses), chevron = true) {
-            MaterialAlertDialogBuilder(this).setTitle(R.string.licenses).setMessage(R.string.licenses_text)
-                .setPositiveButton(R.string.close, null).show()
+            Sheets.notice(this, getString(R.string.licenses), getString(R.string.licenses_text), icon = R.drawable.ic_doc, button = getString(R.string.close))
         }
 
         // Origin

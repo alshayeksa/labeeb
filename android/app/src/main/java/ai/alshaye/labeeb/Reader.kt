@@ -122,10 +122,10 @@ class ReaderActivity : AppCompatActivity() {
             setPadding(dp(6), 0, dp(10), 0)
         }
         bar.addView(ImageButton(this).apply {
-            setImageResource(R.drawable.ic_back)
+            setImageResource(R.drawable.ic_close)
             setColorFilter(color(R.color.text))
             background = null
-            contentDescription = getString(R.string.back)
+            contentDescription = getString(R.string.close)
             setOnClickListener { finish() }
         }, LinearLayout.LayoutParams(dp(48), dp(48)))
         bar.addView(TextView(this).apply {
@@ -245,10 +245,8 @@ class ReaderActivity : AppCompatActivity() {
         val provider = Prefs.provider
         val key = Secrets.get(this, Ai.providers.getValue(provider).keyName)
         if (key.isNullOrBlank()) {
-            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.need_key_title).setMessage(R.string.need_key)
-                .setPositiveButton(R.string.open_settings) { _, _ -> startActivity(Intent(this, SettingsActivity::class.java)) }
-                .setNegativeButton(R.string.cancel, null).show()
+            Sheets.message(this, R.drawable.ic_key, getString(R.string.need_key_title), getString(R.string.need_key),
+                primary = getString(R.string.open_settings)) { startActivity(Intent(this, SettingsActivity::class.java)) }
             return
         }
         val blocks = article.optJSONArray("blocks") ?: return

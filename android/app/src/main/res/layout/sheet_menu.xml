@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_sheet">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="16dp">
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/bg_handle" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/mAssistant"
+                style="@style/QuickBtn"
+                android:text="@string/assistant"
+                android:textColor="@color/accent"
+                app:drawableTint="@color/accent"
+                app:drawableTopCompat="@drawable/ic_spark" />
+
+            <TextView
+                android:id="@+id/mBack"
+                style="@style/QuickBtn"
+                android:layout_marginStart="8dp"
+                android:text="@string/back"
+                app:drawableTopCompat="@drawable/ic_back" />
+
+            <TextView
+                android:id="@+id/mForward"
+                style="@style/QuickBtn"
+                android:layout_marginStart="8dp"
+                android:text="@string/forward"
+                app:drawableTopCompat="@drawable/ic_forward" />
+
+            <TextView
+                android:id="@+id/mSave"
+                style="@style/QuickBtn"
+                android:layout_marginStart="8dp"
+                android:text="@string/save"
+                app:drawableTopCompat="@drawable/ic_star" />
+
+            <TextView
+                android:id="@+id/mShare"
+                style="@style/QuickBtn"
+                android:layout_marginStart="8dp"
+                android:text="@string/share"
+                app:drawableTopCompat="@drawable/ic_share" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_group"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <LinearLayout
+                android:id="@+id/mApp"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:background="?selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:drawablePadding="14dp"
+                    android:gravity="center_vertical"
+                    android:text="@string/run_as_app"
+                    android:textAlignment="viewStart"
+                    android:textColor="@color/text"
+                    android:textSize="15sp"
+                    app:drawableStartCompat="@drawable/ic_app_add"
+                    app:drawableTint="@color/accent" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_badge"
+                    android:paddingStart="10dp"
+                    android:paddingTop="2dp"
+                    android:paddingEnd="10dp"
+                    android:paddingBottom="2dp"
+                    android:text="@string/badge_new"
+                    android:textColor="@color/on_accent"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/mReader"
+                style="@style/MenuRow"
+                android:text="@string/reader_mode"
+                app:drawableStartCompat="@drawable/ic_book" />
+
+            <TextView
+                android:id="@+id/mMemory"
+                style="@style/MenuRow"
+                android:text="@string/memory"
+                app:drawableStartCompat="@drawable/ic_memory" />
+
+            <TextView
+                android:id="@+id/mBookmarks"
+                style="@style/MenuRow"
+                android:text="@string/bookmarks"
+                app:drawableStartCompat="@drawable/ic_star" />
+
+            <TextView
+                android:id="@+id/mHistory"
+                style="@style/MenuRow"
+                android:text="@string/history"
+                app:drawableStartCompat="@drawable/ic_clock" />
+
+            <TextView
+                android:id="@+id/mDownloads"
+                style="@style/MenuRow"
+                android:text="@string/downloads"
+                app:drawableStartCompat="@drawable/ic_download" />
+
+            <TextView
+                android:id="@+id/mFind"
+                style="@style/MenuRow"
+                android:text="@string/find_in_page"
+                app:drawableStartCompat="@drawable/ic_find" />
+
+            <TextView
+                android:id="@+id/mSettings"
+                style="@style/MenuRow"
+                android:text="@string/settings"
+                app:drawableStartCompat="@drawable/ic_settings" />
+
+            <TextView
+                android:id="@+id/mAbout"
+                style="@style/MenuRow"
+                android:text="@string/about"
+                app:drawableStartCompat="@drawable/ic_info" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/mDark"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_toggle_off"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/mDarkText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:drawablePadding="8dp"
+                    android:gravity="center_vertical"
+                    android:text="@string/dark_theme"
+                    android:textColor="@color/text"
+                    android:textSize="15sp"
+                    app:drawableStartCompat="@drawable/ic_moon"
+                    app:drawableTint="@color/text" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/mDesktop"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_toggle_off"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/mDesktopText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:drawablePadding="8dp"
+                    android:gravity="center_vertical"
+                    android:text="@string/desktop_site"
+                    android:textColor="@color/text"
+                    android:textSize="15sp"
+                    app:drawableStartCompat="@drawable/ic_desktop"
+                    app:drawableTint="@color/text" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

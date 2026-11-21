@@ -1,0 +1,48 @@
+# Labeeb for iPhone: signed build uploaded to TestFlight.
+# Started by hand from Codemagic; pushes do not trigger it.
+#
+# Codemagic must already hold, under Team settings > Code signing identities, an Apple Distribution
+# certificate and an App Store provisioning profile for ai.alshaye.labeeb. They are picked by bundle
+# identifier, so their reference names do not matter. The integration name below is the App Store
+# Connect API key as it is named under Team integrations.
+workflows:
+  labeeb-ios-testflight:
+    name: Labeeb iOS TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    integrations:
+      app_store_connect: Codemagic Viora app
+    environment:
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: ai.alshaye.labeeb
+    scripts:
+      - name: Generate the Xcode project
+        script: |
+          set -euo pipefail
+          command -v xcodegen >/dev/null || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+          cd ios
+          # App Store Connect wants each upload numbered above the last; the time of the build always is.
+          sed -i '' "s/CURRENT_PROJECT_VERSION: \"1\"/CURRENT_PROJECT_VERSION: \"$(date -u +%Y%m%d%H%M)\"/" project.yml
+          grep CURRENT_PROJECT_VERSION project.yml
+          xcodegen generate
+      - name: Apply signing profiles
+        script: |
+          set -euo pipefail
+          cd ios
+          xcode-project use-profiles --project Labeeb.xcodeproj
+      - name: Build the signed IPA
+        script: |
+          set -euo pipefail
+          cd ios
+          xcode-project build-ipa --project Labeeb.xcodeproj --scheme Labeeb --config Release
+    artifacts:
+      - ios/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
+        submit_to_app_store: false

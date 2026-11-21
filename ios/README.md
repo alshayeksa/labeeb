@@ -14,7 +14,11 @@ open Labeeb.xcodeproj
 ```
 
 Requires Xcode 16 and iOS 17 or later. The bundle identifier is `ai.alshaye.labeeb`; signing is not configured.
-The app icon in the repository is 512 px and the build upscales it; replace it with a 1024 px original before release.
+The app icon is 1024 px and opaque, as App Store Connect requires.
+
+## TestFlight
+
+`codemagic.yaml` at the repository root holds the `labeeb-ios-testflight` workflow. It is started by hand in Codemagic, signs with the App Store profile for `ai.alshaye.labeeb` held in Codemagic, numbers the build by the time it ran and uploads it to TestFlight.
 
 ## Continuous build
 

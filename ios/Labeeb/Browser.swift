@@ -279,18 +279,12 @@ final class BrowserModel: NSObject {
     }
 
     func openReader(_ tab: Tab) {
-        tab.webView?.evaluateJavaScript(Scripts.reader) { [weak self] value, failure in
+        tab.webView?.evaluateJavaScript(Scripts.reader) { [weak self] value, _ in
             guard let self else { return }
             guard let json = value as? String, let data = json.data(using: .utf8),
                   let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   ((object["chars"] as? NSNumber)?.intValue ?? 0) >= 500, let raw = object["blocks"] as? [[String: Any]] else {
-                #if DEBUG
-                let parsed = (value as? String).flatMap { $0.data(using: .utf8) }.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
-                print("reader failed:", failure?.localizedDescription ?? "", parsed?["error"] ?? "", parsed?["chars"] ?? "")
-                self.show("reader: \(failure?.localizedDescription ?? "") \(parsed?["error"] ?? "") chars=\(parsed?["chars"] ?? "nil")")
-                #else
                 self.show(t("reader_unavailable"))
-                #endif
                 return
             }
             let blocks = raw.enumerated().map { Article.Block(id: $0.offset, kind: $0.element["k"] as? String ?? "p", text: $0.element["t"] as? String ?? "") }

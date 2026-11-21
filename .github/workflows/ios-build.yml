@@ -181,6 +181,26 @@ jobs:
           cd ios
           xcode-project use-profiles --project Labeeb.xcodeproj
 
+      # An upload is refused when this key's team has no app record for the identifier, so look before
+      # spending ten minutes on the build.
+      - name: Check the app exists in App Store Connect
+        env:
+          APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          app-store-connect apps list --json > "$RUNNER_TEMP/apps.json" 2> "$RUNNER_TEMP/apps.err" || { tail -5 "$RUNNER_TEMP/apps.err"; exit 1; }
+          python3 - <<'PY'
+          import json, os, sys
+          apps = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "apps.json")))
+          ids = sorted(a.get("attributes", {}).get("bundleId", "?") for a in apps)
+          print("Apps this key can see: %d" % len(ids))
+          for i in ids:
+              print("  " + i)
+          if "ai.alshaye.labeeb" not in ids:
+              print("::error::No app record for ai.alshaye.labeeb in the team this API key belongs to.")
+              sys.exit(1)
+          PY
+
       - name: Build the signed IPA
         run: |
           set -euo pipefail

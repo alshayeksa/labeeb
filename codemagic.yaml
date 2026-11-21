@@ -1,10 +1,11 @@
 # Labeeb for iPhone: signed build uploaded to TestFlight.
 # Started by hand from Codemagic; pushes do not trigger it.
 #
-# Codemagic must already hold, under Team settings > Code signing identities, an Apple Distribution
-# certificate and an App Store provisioning profile for ai.alshaye.labeeb. They are picked by bundle
-# identifier, so their reference names do not matter. The integration name below is the App Store
-# Connect API key as it is named under Team integrations.
+# Signing is fetched from Apple at build time with the App Store Connect API key named under
+# Team integrations: the app identifier and its App Store profile are created on the first run if
+# they do not exist. The distribution certificate is tied to CERTIFICATE_PRIVATE_KEY, an RSA key kept
+# as a secret variable in the Codemagic group labeeb_ios; keep that key, or every new one costs
+# another certificate.
 workflows:
   labeeb-ios-testflight:
     name: Labeeb iOS TestFlight
@@ -14,9 +15,8 @@ workflows:
       app_store_connect: Codemagic Viora app
     environment:
       xcode: latest
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: ai.alshaye.labeeb
+      groups:
+        - labeeb_ios
     scripts:
       - name: Generate the Xcode project
         script: |
@@ -27,9 +27,12 @@ workflows:
           sed -i '' "s/CURRENT_PROJECT_VERSION: \"1\"/CURRENT_PROJECT_VERSION: \"$(date -u +%Y%m%d%H%M)\"/" project.yml
           grep CURRENT_PROJECT_VERSION project.yml
           xcodegen generate
-      - name: Apply signing profiles
+      - name: Fetch signing from Apple and apply it
         script: |
           set -euo pipefail
+          keychain initialize
+          app-store-connect fetch-signing-files "ai.alshaye.labeeb" --type IOS_APP_STORE --create
+          keychain add-certificates
           cd ios
           xcode-project use-profiles --project Labeeb.xcodeproj
       - name: Build the signed IPA

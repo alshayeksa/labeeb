@@ -18,7 +18,7 @@ The app icon is 1024 px and opaque, as App Store Connect requires.
 
 ## TestFlight
 
-`codemagic.yaml` at the repository root holds the `labeeb-ios-testflight` workflow. It is started by hand in Codemagic, signs with the App Store profile for `ai.alshaye.labeeb` held in Codemagic, numbers the build by the time it ran and uploads it to TestFlight.
+`codemagic.yaml` at the repository root holds the `labeeb-ios-testflight` workflow. It is started by hand in Codemagic, fetches the App Store profile for `ai.alshaye.labeeb` from Apple (creating it on the first run) with the certificate key kept in the Codemagic group `labeeb_ios`, numbers the build by the time it ran and uploads it to TestFlight.
 
 ## Continuous build
 

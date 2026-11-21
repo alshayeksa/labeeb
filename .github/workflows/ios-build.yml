@@ -55,7 +55,7 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl install "$UDID" "$APP"
           mkdir -p shots
-          for shot in home page tabs confirm accounts menu settings about library reader memory assistant light english; do
+          for shot in home page tabs confirm accounts save dialog menu settings about library reader memory assistant light english; do
             xcrun simctl terminate "$UDID" ai.alshaye.labeeb 2>/dev/null || true
             xcrun simctl launch "$UDID" ai.alshaye.labeeb -shot "$shot"
             sleep 14

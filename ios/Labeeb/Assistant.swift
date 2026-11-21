@@ -212,10 +212,13 @@ struct AssistantView: View {
         .background(Palette.panel.ignoresSafeArea())
         .onAppear(perform: restore)
         .onDisappear { UserDefaults.standard.set(input, forKey: "chat_draft") }
-        .alert(t("need_key_title"), isPresented: $needKey) {
-            Button(t("open_settings")) { openSettings() }
-            Button(t("cancel"), role: .cancel) {}
-        } message: { Text(t("need_key")) }
+        .sheet(isPresented: $needKey) {
+            MessageSheet(icon: "key.fill", title: t("need_key_title"), message: t("need_key"), primary: t("open_settings"), action: {
+                // Settings replaces the assistant's own sheet, so it waits for this one to close.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { openSettings() }
+            })
+            .labeebEnvironment()
+        }
     }
 
     private func bubble(_ message: ChatMessage) -> some View {

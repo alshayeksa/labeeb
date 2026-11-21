@@ -86,13 +86,17 @@ struct BrowserView: View {
             page
             bottom
             if let toast = model.toast {
-                Text(toast)
-                    .font(.subheadline)
-                    .foregroundStyle(Palette.text)
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(.regularMaterial, in: Capsule())
-                    .padding(.bottom, 110)
-                    .transition(.opacity)
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle.fill").foregroundStyle(Palette.accent).accessibilityHidden(true)
+                    Text(toast).font(.subheadline.weight(.medium)).foregroundStyle(Palette.text).multilineTextAlignment(.leading)
+                }
+                .padding(.horizontal, 16).padding(.vertical, 11)
+                .background(Palette.panel, in: Capsule())
+                .overlay(Capsule().stroke(Palette.line))
+                .shadow(color: .black.opacity(0.22), radius: 12, y: 4)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 110)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(.easeOut(duration: 0.2), value: model.toast)
@@ -112,15 +116,14 @@ struct BrowserView: View {
             }
             .labeebEnvironment()
         }
-        .alert(t(model.pendingSave?.isUpdate == true ? "update_password_title" : "save_password_title"),
-               isPresented: Binding(get: { model.pendingSave != nil }, set: { if !$0 { model.pendingSave = nil } }),
-               presenting: model.pendingSave) { offer in
-            Button(t(offer.isUpdate ? "update" : "save")) {
+        .sheet(item: $model.pendingSave) { offer in
+            MessageSheet(icon: "key.fill", title: t(offer.isUpdate ? "update_password_title" : "save_password_title"),
+                         message: t("save_password_note"), primary: t(offer.isUpdate ? "update" : "save"), secondary: t("not_now")) {
                 Store.shared.saveCredential(origin: offer.origin, username: offer.username, password: offer.password)
+            } extra: {
+                AccountCard(host: Web.host(offer.origin), username: offer.username)
             }
-            Button(t("not_now"), role: .cancel) {}
-        } message: { offer in
-            Text(Web.host(offer.origin) + "\n" + (offer.username.isEmpty ? t("no_username") : offer.username))
+            .labeebEnvironment()
         }
         .sheet(isPresented: $chooseAccount) {
             if let tab = model.current {
@@ -407,6 +410,16 @@ struct BrowserView: View {
         case "confirm":
             model.load(sample)
             later(7) { openTabs() }
+        case "save":
+            model.load(sample)
+            later(6) {
+                model.pendingSave = Offer(origin: "https://ar.wikipedia.org", pageURL: sample, username: "reader@example.com", password: "x", time: Date())
+            }
+        case "dialog":
+            model.load(sample)
+            later(6) {
+                PageDialog(host: "ar.wikipedia.org", message: "هل تريد مغادرة هذه الصفحة؟ قد لا تُحفظ التغييرات التي أجريتها.", kind: .confirm) { _, _ in }.present()
+            }
         case "menu":
             model.load(sample)
             later(6) { panel = .menu }
@@ -542,10 +555,8 @@ struct HomeView: View {
             .padding(.top, 12)
             .padding(.bottom, bottomSpace)
         }
-        .alert(t("add_site"), isPresented: $addSite) {
-            TextField(t("site_name"), text: $newName)
-            TextField(t("site_url"), text: $newURL).textInputAutocapitalization(.never).keyboardType(.URL)
-            Button(t("add")) {
+        .sheet(isPresented: $addSite) {
+            MessageSheet(icon: "plus", title: t("add_site"), message: t("add_site_note"), primary: t("add")) {
                 let raw = newURL.trimmingCharacters(in: .whitespaces)
                 if !raw.isEmpty {
                     Store.shared.addBookmark(url: Web.isWeb(raw) ? raw : "https://" + raw, title: newName.trimmingCharacters(in: .whitespaces))
@@ -553,8 +564,14 @@ struct HomeView: View {
                 }
                 newName = ""
                 newURL = ""
+            } extra: {
+                VStack(spacing: 10) {
+                    SheetField(label: t("site_name"), text: $newName)
+                    SheetField(label: t("site_url"), text: $newURL, address: true)
+                        .environment(\.layoutDirection, .leftToRight)
+                }
             }
-            Button(t("cancel"), role: .cancel) {}
+            .labeebEnvironment()
         }
     }
 

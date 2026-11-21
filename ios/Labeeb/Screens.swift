@@ -499,16 +499,16 @@ struct PasswordsView: View {
         }
         .labeebList()
         .navigationTitle(t("passwords"))
-        .alert(revealed?.0.host ?? "", isPresented: Binding(get: { revealed != nil }, set: { if !$0 { revealed = nil } })) {
-            Button(t("copy_password")) {
+        .sheet(isPresented: Binding(get: { revealed != nil }, set: { if !$0 { revealed = nil } })) {
+            MessageSheet(icon: "lock.open.fill", title: t("saved_password"), primary: t("copy_password"), secondary: t("close")) {
                 // Kept on this device and dropped from the clipboard after a minute.
                 if let secret = revealed?.1 {
                     UIPasteboard.general.setItems([[UIPasteboard.typeAutomatic: secret]], options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(60)])
                 }
+            } extra: {
+                AccountCard(host: revealed?.0.host ?? "", username: revealed?.0.username ?? "", secret: revealed?.1 ?? "")
             }
-            Button(t("close"), role: .cancel) {}
-        } message: {
-            Text((revealed?.0.username.isEmpty == false ? revealed!.0.username : t("no_username")) + "\n\n" + (revealed?.1 ?? ""))
+            .labeebEnvironment()
         }
     }
 }
@@ -595,53 +595,78 @@ struct AboutView: View {
         .background(Palette.canvas.ignoresSafeArea())
         .navigationTitle(t("about"))
         .navigationBarTitleDisplayMode(.inline)
-        .alert(t("licenses"), isPresented: $showLicenses) {
-            Button(t("close"), role: .cancel) {}
-        } message: { Text(t("licenses_text")) }
+        .noticeSheet(isPresented: $showLicenses, icon: "doc.text.fill", title: t("licenses"), message: t("licenses_text"), button: t("close"))
     }
 }
 
-// MARK: - Confirmation
+// MARK: - Messages
 
-/// Labeeb's own confirmation for actions that cannot be undone: a short sheet from the bottom with the
-/// question centred, the destructive action first and a way out beneath it. The system dialog is not
-/// used because it attaches itself to whichever view declared it and lands off to one side.
-private struct ConfirmSheet: View {
+/// Every message Labeeb raises is this one sheet: it rises from the bottom with its content centred, an
+/// icon that says what kind of message it is, the main action first and the way out beneath it. System
+/// alerts and dialogs are not used; they look like another app's and land off to one side.
+struct MessageSheet<Extra: View>: View {
+    enum Tone { case accent, danger }
+
     let icon: String
+    let tone: Tone
     let title: String
     let message: String?
-    let confirm: String
+    /// The main action. Without one the sheet only informs and carries a single button.
+    let primary: String?
+    let secondary: String?
     let action: () -> Void
+    let extra: Extra
+
     @Environment(\.dismiss) private var dismiss
     @State private var height: CGFloat = 330
 
+    init(icon: String, tone: Tone = .accent, title: String, message: String? = nil, primary: String? = nil,
+         secondary: String? = nil, action: @escaping () -> Void = {}, @ViewBuilder extra: () -> Extra) {
+        self.icon = icon
+        self.tone = tone
+        self.title = title
+        self.message = message
+        self.primary = primary
+        self.secondary = secondary
+        self.action = action
+        self.extra = extra()
+    }
+
+    private var colour: Color { tone == .danger ? Palette.danger : Palette.accent }
+    private var soft: Color { tone == .danger ? Palette.danger.opacity(0.14) : Palette.accentSoft }
+    private var onColour: Color { tone == .danger ? Color(light: 0xFFFFFF, dark: 0x3A0812) : Palette.onAccent }
+
     var body: some View {
         VStack(spacing: 0) {
-            Image(systemName: icon).font(.system(size: 24, weight: .semibold)).foregroundStyle(Palette.danger)
-                .frame(width: 60, height: 60).background(Palette.danger.opacity(0.14), in: Circle())
+            Image(systemName: icon).font(.system(size: 23, weight: .semibold)).foregroundStyle(colour)
+                .frame(width: 60, height: 60).background(soft, in: Circle())
                 .accessibilityHidden(true)
             Text(title).font(.title3.weight(.bold)).foregroundStyle(Palette.text).padding(.top, 16)
-            if let message {
+            if let message, !message.isEmpty {
                 Text(message).font(.subheadline).foregroundStyle(Palette.muted).lineSpacing(3).padding(.top, 8)
             }
+            extra.padding(.top, 18)
+
             Button {
                 // The action runs first: closing the sheet clears the state some callers read to know what was confirmed.
                 action()
                 dismiss()
             } label: {
-                Text(confirm).font(.body.weight(.semibold)).foregroundStyle(Color(light: 0xFFFFFF, dark: 0x3A0812))
+                Text(primary ?? secondary ?? t("ok")).font(.body.weight(.semibold)).foregroundStyle(onColour)
                     .frame(maxWidth: .infinity).frame(height: 52)
-                    .background(Palette.danger, in: RoundedRectangle(cornerRadius: 16))
+                    .background(colour, in: RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(.plain)
             .padding(.top, 24)
-            Button { dismiss() } label: {
-                Text(t("cancel")).font(.body.weight(.semibold)).foregroundStyle(Palette.text)
-                    .frame(maxWidth: .infinity).frame(height: 52)
-                    .background(Palette.surface, in: RoundedRectangle(cornerRadius: 16))
+            if primary != nil {
+                Button { dismiss() } label: {
+                    Text(secondary ?? t("cancel")).font(.body.weight(.semibold)).foregroundStyle(Palette.text)
+                        .frame(maxWidth: .infinity).frame(height: 52)
+                        .background(Palette.surface, in: RoundedRectangle(cornerRadius: 16))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 10)
             }
-            .buttonStyle(.plain)
-            .padding(.top, 10)
         }
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
@@ -656,11 +681,72 @@ private struct ConfirmSheet: View {
     }
 }
 
+extension MessageSheet where Extra == EmptyView {
+    init(icon: String, tone: Tone = .accent, title: String, message: String? = nil, primary: String? = nil,
+         secondary: String? = nil, action: @escaping () -> Void = {}) {
+        self.init(icon: icon, tone: tone, title: title, message: message, primary: primary, secondary: secondary, action: action) { EmptyView() }
+    }
+}
+
+/// A text field as it appears inside a message sheet.
+struct SheetField: View {
+    let label: String
+    @Binding var text: String
+    var address = false
+
+    var body: some View {
+        TextField(label, text: $text)
+            .textInputAutocapitalization(address ? .never : .sentences)
+            .autocorrectionDisabled(address)
+            .keyboardType(address ? .URL : .default)
+            .multilineTextAlignment(.leading)
+            .padding(.horizontal, 14)
+            .frame(height: 50)
+            .background(Palette.surface, in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+/// A site and an account on it, as shown inside a message sheet.
+struct AccountCard: View {
+    let host: String
+    let username: String
+    var secret: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                LetterTile(name: host)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(host).font(.subheadline.weight(.semibold)).foregroundStyle(Palette.text).lineLimit(1)
+                    Text(username.isEmpty ? t("no_username") : username).font(.footnote).foregroundStyle(Palette.muted).lineLimit(1).truncationMode(.middle)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            if let secret {
+                Divider().overlay(Palette.hairline)
+                Text(secret).font(.system(.body, design: .monospaced)).foregroundStyle(Palette.text).textSelection(.enabled)
+                    .frame(maxWidth: .infinity).padding(14)
+                    .environment(\.layoutDirection, .leftToRight)
+            }
+        }
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: 16))
+    }
+}
+
 extension View {
+    /// A question before something that cannot be undone.
     func confirmSheet(isPresented: Binding<Bool>, icon: String = "trash", title: String, message: String? = nil,
                       confirm: String, action: @escaping () -> Void) -> some View {
         sheet(isPresented: isPresented) {
-            ConfirmSheet(icon: icon, title: title, message: message, confirm: confirm, action: action).labeebEnvironment()
+            MessageSheet(icon: icon, tone: .danger, title: title, message: message, primary: confirm, action: action).labeebEnvironment()
+        }
+    }
+
+    /// Something the user is told and only has to acknowledge.
+    func noticeSheet(isPresented: Binding<Bool>, icon: String = "info.circle.fill", title: String, message: String? = nil, button: String? = nil) -> some View {
+        sheet(isPresented: isPresented) {
+            MessageSheet(icon: icon, title: title, message: message, secondary: button).labeebEnvironment()
         }
     }
 }

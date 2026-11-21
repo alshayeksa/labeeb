@@ -88,12 +88,8 @@ struct ReaderView: View {
                         .accessibilityLabel(t("reader_larger"))
                 }
             }
-            .alert(t("need_key_title"), isPresented: $needKey) {
-                Button(t("ok"), role: .cancel) {}
-            } message: { Text(t("need_key")) }
-            .alert(note ?? "", isPresented: Binding(get: { note != nil }, set: { if !$0 { note = nil } })) {
-                Button(t("ok"), role: .cancel) {}
-            }
+            .noticeSheet(isPresented: $needKey, icon: "key.fill", title: t("need_key_title"), message: t("need_key"))
+            .noticeSheet(isPresented: Binding(get: { note != nil }, set: { if !$0 { note = nil } }), title: t("notice"), message: note)
         }
         .onDisappear { task?.cancel() }
     }

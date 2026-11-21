@@ -471,33 +471,73 @@ extension BrowserModel: WKUIDelegate {
         decisionHandler(origin.protocol == "https" ? .prompt : .deny)
     }
 
-    private func present(_ alert: UIAlertController, fallback: @escaping () -> Void) {
-        guard let top = UIApplication.shared.topController else {
-            fallback()
-            return
-        }
-        top.present(alert, animated: true)
-    }
-
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
-        let alert = UIAlertController(title: frame.securityOrigin.host, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: t("ok"), style: .default) { _ in completionHandler() })
-        present(alert, fallback: completionHandler)
+        PageDialog(host: frame.securityOrigin.host, message: message, kind: .alert) { _, _ in completionHandler() }.present()
     }
 
     func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
-        let alert = UIAlertController(title: frame.securityOrigin.host, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: t("cancel"), style: .cancel) { _ in completionHandler(false) })
-        alert.addAction(UIAlertAction(title: t("ok"), style: .default) { _ in completionHandler(true) })
-        present(alert) { completionHandler(false) }
+        PageDialog(host: frame.securityOrigin.host, message: message, kind: .confirm) { ok, _ in completionHandler(ok) }.present()
     }
 
     func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String, defaultText: String?, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (String?) -> Void) {
-        let alert = UIAlertController(title: frame.securityOrigin.host, message: prompt, preferredStyle: .alert)
-        alert.addTextField { $0.text = defaultText }
-        alert.addAction(UIAlertAction(title: t("cancel"), style: .cancel) { _ in completionHandler(nil) })
-        alert.addAction(UIAlertAction(title: t("ok"), style: .default) { [weak alert] _ in completionHandler(alert?.textFields?.first?.text) })
-        present(alert) { completionHandler(nil) }
+        PageDialog(host: frame.securityOrigin.host, message: prompt, kind: .prompt(defaultText ?? "")) { ok, text in completionHandler(ok ? text : nil) }.present()
+    }
+}
+
+/// Something a page says or asks through the browser: its alert, its question or its request for a line
+/// of text. The page waits for the answer, so it is given exactly once, whichever way the sheet closes.
+final class PageDialog {
+    enum Kind {
+        case alert, confirm
+        case prompt(String)
+    }
+
+    let host: String
+    let message: String
+    let kind: Kind
+    private var done: ((Bool, String?) -> Void)?
+
+    init(host: String, message: String, kind: Kind, done: @escaping (Bool, String?) -> Void) {
+        self.host = host
+        self.message = message
+        self.kind = kind
+        self.done = done
+    }
+
+    func answer(_ ok: Bool, _ text: String? = nil) {
+        done?(ok, text)
+        done = nil
+    }
+
+    func present() {
+        guard let top = UIApplication.shared.topController, top.presentedViewController == nil else {
+            answer(false)
+            return
+        }
+        let host = UIHostingController(rootView: PageDialogSheet(dialog: self).labeebEnvironment())
+        host.view.backgroundColor = UIColor(Palette.panel)
+        host.sheetPresentationController?.detents = [.medium()]
+        host.sheetPresentationController?.prefersGrabberVisible = true
+        top.present(host, animated: true)
+    }
+}
+
+private struct PageDialogSheet: View {
+    let dialog: PageDialog
+    @State private var text = ""
+
+    private var asks: Bool { if case .alert = dialog.kind { return false } else { return true } }
+    private var wantsText: Bool { if case .prompt = dialog.kind { return true } else { return false } }
+
+    var body: some View {
+        MessageSheet(icon: "globe", title: dialog.host, message: dialog.message, primary: asks ? t("ok") : nil) {
+            dialog.answer(true, text)
+        } extra: {
+            if wantsText { SheetField(label: "", text: $text) }
+        }
+        .onAppear { if case .prompt(let initial) = dialog.kind { text = initial } }
+        // Swiped away or cancelled: the page is told no. Nothing happens if it was already answered.
+        .onDisappear { dialog.answer(false) }
     }
 }
 

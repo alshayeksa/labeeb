@@ -338,8 +338,12 @@ object Toasts {
         })
         host.announceForAccessibility(text)
         card.alpha = 0f
-        card.translationY = c.dp(12).toFloat()
-        card.animate().alpha(1f).translationY(0f).setDuration(160).start()
+        card.translationY = c.dp(22).toFloat()
+        card.animate().alpha(1f).setDuration(160).start()
+        androidx.dynamicanimation.animation.SpringAnimation(card, androidx.dynamicanimation.animation.DynamicAnimation.TRANSLATION_Y, 0f).apply {
+            spring.stiffness = androidx.dynamicanimation.animation.SpringForce.STIFFNESS_MEDIUM
+            spring.dampingRatio = 0.7f
+        }.start()
         card.postDelayed({
             card.animate().alpha(0f).setDuration(200).withEndAction { (card.parent as? ViewGroup)?.removeView(card) }.start()
         }, 2400)

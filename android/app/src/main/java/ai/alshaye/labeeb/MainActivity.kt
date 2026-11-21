@@ -56,6 +56,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.dynamicanimation.animation.DynamicAnimation
+import androidx.dynamicanimation.animation.SpringAnimation
+import androidx.dynamicanimation.animation.SpringForce
 import androidx.webkit.ProfileStore
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
@@ -881,19 +884,7 @@ class MainActivity : AppCompatActivity() {
         val list = findViewById<RecyclerView>(R.id.tabsList)
         list.layoutManager = GridLayoutManager(this, 2)
         list.adapter = tabsAdapter
-        androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
-            0, androidx.recyclerview.widget.ItemTouchHelper.START or androidx.recyclerview.widget.ItemTouchHelper.END
-        ) {
-            override fun onMove(rv: RecyclerView, a: RecyclerView.ViewHolder, b: RecyclerView.ViewHolder) = false
-
-            // A card must be dragged most of the way across, or thrown firmly, before its tab closes.
-            override fun getSwipeThreshold(holder: RecyclerView.ViewHolder) = 0.65f
-            override fun getSwipeEscapeVelocity(defaultValue: Float) = defaultValue * 8
-            override fun onSwiped(holder: RecyclerView.ViewHolder, direction: Int) {
-                tabsAdapter.items.getOrNull(holder.bindingAdapterPosition)?.let { closeTab(it) }
-                refreshTabs()
-            }
-        }).attachToRecyclerView(list)
+        list.addOnItemTouchListener(TabSwipe())
         findViewById<View>(R.id.segNormal).setOnClickListener { privateMode = false; refreshTabs() }
         findViewById<View>(R.id.segPrivate).setOnClickListener { privateMode = true; refreshTabs() }
         findViewById<View>(R.id.newTabBtn).setOnClickListener {
@@ -915,16 +906,119 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Dragging a tab card sideways. The card follows the finger and fades; let go early and it springs
+     * back, carry it well across or throw it and it leaves and its tab closes.
+     */
+    private inner class TabSwipe : RecyclerView.OnItemTouchListener {
+        private var card: View? = null
+        private var startX = 0f
+        private var startY = 0f
+        private var dragging = false
+        private var tracker: android.view.VelocityTracker? = null
+
+        private fun settle(v: View, velocity: Float) {
+            SpringAnimation(v, DynamicAnimation.TRANSLATION_X, 0f).apply {
+                spring.stiffness = SpringForce.STIFFNESS_MEDIUM
+                spring.dampingRatio = 0.72f
+                setStartVelocity(velocity)
+            }.start()
+            v.animate().alpha(1f).setDuration(160).start()
+        }
+
+        private fun release(rv: RecyclerView, cancelled: Boolean) {
+            val v = card
+            val t = tracker
+            card = null
+            tracker = null
+            val wasDragging = dragging
+            dragging = false
+            if (v == null || !wasDragging) {
+                t?.recycle()
+                return
+            }
+            t?.computeCurrentVelocity(1000)
+            val velocity = t?.xVelocity ?: 0f
+            t?.recycle()
+            val moved = v.translationX
+            val thrown = kotlin.math.abs(velocity) > dp(900) && (velocity > 0) == (moved > 0) && kotlin.math.abs(moved) > v.width * 0.2f
+            val tab = tabsAdapter.items.getOrNull(rv.getChildAdapterPosition(v))
+            if (cancelled || tab == null || !(thrown || kotlin.math.abs(moved) > v.width * 0.55f)) {
+                settle(v, velocity)
+                return
+            }
+            val away = (if (moved > 0) 1 else -1) * rv.width.toFloat()
+            SpringAnimation(v, DynamicAnimation.TRANSLATION_X, away).apply {
+                spring.stiffness = SpringForce.STIFFNESS_LOW
+                spring.dampingRatio = SpringForce.DAMPING_RATIO_NO_BOUNCY
+                setStartVelocity(velocity)
+                addEndListener { _, _, _, _ ->
+                    if (tab in tabs) closeTab(tab)
+                    refreshTabs()
+                }
+            }.start()
+            v.animate().alpha(0f).setDuration(180).start()
+        }
+
+        override fun onInterceptTouchEvent(rv: RecyclerView, e: android.view.MotionEvent): Boolean {
+            when (e.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    card = rv.findChildViewUnder(e.x, e.y)
+                    startX = e.x
+                    startY = e.y
+                    dragging = false
+                    tracker?.recycle()
+                    tracker = android.view.VelocityTracker.obtain().also { it.addMovement(e) }
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    tracker?.addMovement(e)
+                    val dx = e.x - startX
+                    val dy = e.y - startY
+                    // Only a clearly sideways move takes the card; anything else scrolls the list.
+                    if (card != null && !dragging && kotlin.math.abs(dx) > dp(20) && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.5f) {
+                        dragging = true
+                        startX = e.x
+                        rv.parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                }
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> release(rv, true)
+            }
+            return dragging
+        }
+
+        override fun onTouchEvent(rv: RecyclerView, e: android.view.MotionEvent) {
+            val v = card ?: return
+            tracker?.addMovement(e)
+            when (e.actionMasked) {
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    v.translationX = e.x - startX
+                    v.alpha = 1f - minOf(kotlin.math.abs(v.translationX) / (v.width * 1.3f), 0.6f)
+                }
+                android.view.MotionEvent.ACTION_UP -> release(rv, false)
+                android.view.MotionEvent.ACTION_CANCEL -> release(rv, true)
+            }
+        }
+
+        override fun onRequestDisallowInterceptTouchEvent(disallow: Boolean) {}
+    }
+
     private fun showTabs() {
         address.clearFocus()
         current?.let { capture(it) }
         privateMode = current?.private == true
         tabsOverlay.animate().cancel()
         tabsOverlay.alpha = 0f
-        tabsOverlay.scaleX = 0.97f
-        tabsOverlay.scaleY = 0.97f
+        tabsOverlay.scaleX = 0.94f
+        tabsOverlay.scaleY = 0.94f
         tabsOverlay.visibility = View.VISIBLE
-        tabsOverlay.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(160).start()
+        tabsOverlay.animate().alpha(1f).setDuration(140).start()
+        // The screen settles into place on a spring rather than a fixed-length fade.
+        for (property in listOf(DynamicAnimation.SCALE_X, DynamicAnimation.SCALE_Y)) {
+            SpringAnimation(tabsOverlay, property, 1f).apply {
+                spring.stiffness = SpringForce.STIFFNESS_MEDIUM
+                spring.dampingRatio = 0.8f
+            }.start()
+        }
         refreshTabs()
         updateBar()
     }
@@ -998,6 +1092,10 @@ class MainActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(h: Holder, position: Int) {
             val tab = items[position]
+            // A card reused after a swipe starts back in its place.
+            h.itemView.animate().cancel()
+            h.itemView.translationX = 0f
+            h.itemView.alpha = 1f
             val name = if (tab.home) getString(R.string.home_tab) else tab.title.ifBlank { Urls.host(tab.url) }
             h.title.text = name
             when {

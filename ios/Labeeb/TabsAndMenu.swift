@@ -79,10 +79,15 @@ struct TabsView: View {
         }
         .foregroundStyle(Palette.text)
         .background(Palette.canvas.ignoresSafeArea())
-        .confirmationDialog(t("close_all_confirm"), isPresented: $confirmCloseAll, titleVisibility: .visible) {
-            Button(t("close_all"), role: .destructive) { closeAll() }
+        .confirmSheet(isPresented: $confirmCloseAll, icon: "xmark.circle", title: t("close_all_confirm"),
+                      message: t("close_all_message", num(shown.count)), confirm: t("close_all")) { closeAll() }
+        .onAppear {
+            privateMode = model.current?.isPrivate ?? false
+            // For the build's photograph of the confirmation.
+            if ProcessInfo.processInfo.arguments.contains("confirm") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { confirmCloseAll = true }
+            }
         }
-        .onAppear { privateMode = model.current?.isPrivate ?? false }
     }
 
     private func closeAll() {

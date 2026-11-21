@@ -102,11 +102,9 @@ struct LibraryView: View {
                     ToolbarItem(placement: .cancellationAction) { Button(t("clear"), role: .destructive) { confirmClear = true }.foregroundStyle(Palette.danger) }
                 }
             }
-            .confirmationDialog(t("clear_history_confirm"), isPresented: $confirmClear, titleVisibility: .visible) {
-                Button(t("clear_history"), role: .destructive) {
-                    Store.shared.clearHistory()
-                    refresh()
-                }
+            .confirmSheet(isPresented: $confirmClear, title: asked(t("clear_history")), message: t("clear_history_confirm"), confirm: t("clear_history")) {
+                Store.shared.clearHistory()
+                refresh()
             }
         }
     }
@@ -433,9 +431,8 @@ struct SettingsView: View {
             .onAppear { modelText = settings.model(for: provider) }
             .onChange(of: settings.provider) { _, now in modelText = settings.model(for: now) }
             .onDisappear { settings.setModel(modelText, for: settings.provider) }
-            .confirmationDialog(confirmMessage, isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } }), titleVisibility: .visible) {
-                Button(confirmTitle, role: .destructive, action: runConfirmed)
-            }
+            .confirmSheet(isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } }),
+                          title: asked(confirmTitle), message: confirmMessage, confirm: confirmTitle, action: runConfirmed)
         }
     }
 
@@ -603,3 +600,70 @@ struct AboutView: View {
         } message: { Text(t("licenses_text")) }
     }
 }
+
+// MARK: - Confirmation
+
+/// Labeeb's own confirmation for actions that cannot be undone: a short sheet from the bottom with the
+/// question centred, the destructive action first and a way out beneath it. The system dialog is not
+/// used because it attaches itself to whichever view declared it and lands off to one side.
+private struct ConfirmSheet: View {
+    let icon: String
+    let title: String
+    let message: String?
+    let confirm: String
+    let action: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var height: CGFloat = 330
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Image(systemName: icon).font(.system(size: 24, weight: .semibold)).foregroundStyle(Palette.danger)
+                .frame(width: 60, height: 60).background(Palette.danger.opacity(0.14), in: Circle())
+                .accessibilityHidden(true)
+            Text(title).font(.title3.weight(.bold)).foregroundStyle(Palette.text).padding(.top, 16)
+            if let message {
+                Text(message).font(.subheadline).foregroundStyle(Palette.muted).lineSpacing(3).padding(.top, 8)
+            }
+            Button {
+                // The action runs first: closing the sheet clears the state some callers read to know what was confirmed.
+                action()
+                dismiss()
+            } label: {
+                Text(confirm).font(.body.weight(.semibold)).foregroundStyle(Color(light: 0xFFFFFF, dark: 0x3A0812))
+                    .frame(maxWidth: .infinity).frame(height: 52)
+                    .background(Palette.danger, in: RoundedRectangle(cornerRadius: 16))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 24)
+            Button { dismiss() } label: {
+                Text(t("cancel")).font(.body.weight(.semibold)).foregroundStyle(Palette.text)
+                    .frame(maxWidth: .infinity).frame(height: 52)
+                    .background(Palette.surface, in: RoundedRectangle(cornerRadius: 16))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 10)
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 24)
+        .padding(.top, 34)
+        .padding(.bottom, 12)
+        .fixedSize(horizontal: false, vertical: true)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+        .presentationDetents([.height(height)])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(Palette.panel)
+    }
+}
+
+extension View {
+    func confirmSheet(isPresented: Binding<Bool>, icon: String = "trash", title: String, message: String? = nil,
+                      confirm: String, action: @escaping () -> Void) -> some View {
+        sheet(isPresented: isPresented) {
+            ConfirmSheet(icon: icon, title: title, message: message, confirm: confirm, action: action).labeebEnvironment()
+        }
+    }
+}
+
+/// A label turned into the question a confirmation asks.
+func asked(_ text: String) -> String { text + (AppSettings.shared.isArabic ? "\u{061F}" : "?") }

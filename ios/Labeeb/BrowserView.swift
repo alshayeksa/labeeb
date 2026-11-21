@@ -398,6 +398,9 @@ struct BrowserView: View {
         case "tabs":
             model.load(sample)
             later(7) { openTabs() }
+        case "confirm":
+            model.load(sample)
+            later(7) { openTabs() }
         case "menu":
             model.load(sample)
             later(6) { panel = .menu }

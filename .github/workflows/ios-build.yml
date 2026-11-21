@@ -2,6 +2,11 @@ name: iOS build and screenshots
 
 on:
   workflow_dispatch:
+    inputs:
+      testflight:
+        description: Sign the app and upload it to TestFlight instead of taking screenshots
+        type: boolean
+        default: false
   push:
     branches: [mobile-apps]
     paths:
@@ -12,11 +17,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: ios-${{ github.ref }}
+  group: ios-${{ github.ref }}-${{ inputs.testflight && 'testflight' || 'screens' }}
   cancel-in-progress: true
 
 jobs:
   ios:
+    if: ${{ !inputs.testflight }}
     runs-on: macos-15
     timeout-minutes: 40
     steps:
@@ -63,3 +69,91 @@ jobs:
             shots
             ios/build.log
           retention-days: 7
+
+  # Signed build for TestFlight, started by hand: Actions > iOS build and screenshots > Run workflow,
+  # branch mobile-apps, tick "testflight". The app identifier and its App Store profile are created at
+  # Apple on the first run. Needs four repository secrets, named in the first step below.
+  testflight:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.testflight }}
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check signing secrets
+        id: secrets
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          IOS_CERTIFICATE_PRIVATE_KEY: ${{ secrets.IOS_CERTIFICATE_PRIVATE_KEY }}
+        run: |
+          missing=""
+          for name in APP_STORE_CONNECT_KEY_ID APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_PRIVATE_KEY IOS_CERTIFICATE_PRIVATE_KEY; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          echo "missing=$missing" >> "$GITHUB_OUTPUT"
+
+      - name: Generate the Xcode project
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          brew install xcodegen
+          cd ios
+          # App Store Connect wants each upload numbered above the last; the time of the build always is.
+          sed -i '' "s/CURRENT_PROJECT_VERSION: \"1\"/CURRENT_PROJECT_VERSION: \"$(date -u +%Y%m%d%H%M)\"/" project.yml
+          grep CURRENT_PROJECT_VERSION project.yml
+          xcodegen generate
+
+      - name: Without secrets, only check that the release build compiles
+        if: steps.secrets.outputs.missing != ''
+        run: |
+          cd ios
+          if ! xcodebuild -project Labeeb.xcodeproj -scheme Labeeb -configuration Release \
+              -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO build > build.log 2>&1; then
+            grep -E "error:|error :" build.log | sort -u | head -120
+            exit 1
+          fi
+          echo "The release build compiles. Nothing was signed or uploaded."
+          echo "::error::Missing repository secrets:${{ steps.secrets.outputs.missing }}"
+          exit 1
+
+      - name: Fetch signing from Apple
+        env:
+          APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          CERTIFICATE_PRIVATE_KEY: ${{ secrets.IOS_CERTIFICATE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/ios-tools"
+          "$RUNNER_TEMP/ios-tools/bin/pip" install --quiet codemagic-cli-tools==0.71.0
+          export PATH="$RUNNER_TEMP/ios-tools/bin:$PATH"
+          echo "$RUNNER_TEMP/ios-tools/bin" >> "$GITHUB_PATH"
+          keychain initialize
+          app-store-connect fetch-signing-files "ai.alshaye.labeeb" --type IOS_APP_STORE --create
+          keychain add-certificates
+          cd ios
+          xcode-project use-profiles --project Labeeb.xcodeproj
+
+      - name: Build the signed IPA
+        run: |
+          set -euo pipefail
+          cd ios
+          xcode-project build-ipa --project Labeeb.xcodeproj --scheme Labeeb --config Release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Labeeb-iOS-ipa
+          path: ios/build/ios/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload to TestFlight
+        env:
+          APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: app-store-connect publish --path 'ios/build/ios/ipa/*.ipa'

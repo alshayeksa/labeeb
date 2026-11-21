@@ -57,6 +57,7 @@ struct TabsView: View {
                     // One tab closes at once; several are confirmed first, since they cannot be brought back.
                     if shown.count <= 1 { closeAll() } else { confirmCloseAll = true }
                 }
+                .foregroundStyle(Palette.danger)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 Button {
@@ -70,6 +71,7 @@ struct TabsView: View {
 
                 Button(t("done")) { done() }
                     .fontWeight(.semibold)
+                    .foregroundStyle(Palette.accent)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .padding(.horizontal, 20)

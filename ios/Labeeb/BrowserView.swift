@@ -173,7 +173,7 @@ struct BrowserView: View {
                         .padding(.vertical, 6)
                 }
                 .accessibilityLabel(t("show_bar"))
-                .background(.bar)
+                .background(Palette.canvas.opacity(0.96))
             } else {
                 bar
             }
@@ -217,7 +217,7 @@ struct BrowserView: View {
             .padding(.top, 8)
             .padding(.bottom, 6)
         }
-        .background(.bar)
+        .background(Palette.canvas.opacity(0.96))
     }
 
     private var tabCount: Int {
@@ -301,7 +301,7 @@ struct BrowserView: View {
                 }
             }
         }
-        .background(.bar)
+        .background(Palette.canvas.opacity(0.96))
     }
 
     private func fillStrip(_ tab: Tab) -> some View {
@@ -314,7 +314,7 @@ struct BrowserView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 11)
         }
-        .background(.bar)
+        .background(Palette.canvas.opacity(0.96))
     }
 
     private func beginEditing() {
@@ -353,7 +353,7 @@ struct BrowserView: View {
                 case .dismiss: self.panel = nil
                 }
             }
-            .presentationDetents([.fraction(0.78), .large])
+            .presentationDetents([.fraction(0.9), .large])
             .presentationDragIndicator(.visible)
         case .assistant:
             AssistantView(model: model) { self.panel = .settings }

@@ -14,6 +14,20 @@ struct LetterTile: View {
     }
 }
 
+extension Date {
+    /// A date in the language chosen inside the app.
+    func labeeb(date: Date.FormatStyle.DateStyle, time: Date.FormatStyle.TimeStyle) -> String {
+        formatted(Date.FormatStyle(date: date, time: time).locale(AppSettings.shared.locale))
+    }
+}
+
+extension View {
+    /// Grouped lists and forms on Labeeb's canvas, with rows on its panel colour.
+    func labeebList() -> some View {
+        scrollContentBackground(.hidden).background(Palette.canvas.ignoresSafeArea())
+    }
+}
+
 struct EmptyState: View {
     let icon: String
     let text: String
@@ -59,15 +73,17 @@ struct LibraryView: View {
         let _ = revision
         NavigationStack {
             List {
-                switch tab {
-                case 0: bookmarks
-                case 1: history
-                default: downloads
+                Group {
+                    switch tab {
+                    case 0: bookmarks
+                    case 1: history
+                    default: downloads
+                    }
                 }
+                .listRowBackground(Palette.panel)
             }
             .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .background(Palette.canvas)
+            .labeebList()
             .searchable(text: $query, prompt: t("search_library"))
             .navigationTitle(t(["bookmarks", "history", "downloads"][tab]))
             .navigationBarTitleDisplayMode(.inline)
@@ -156,7 +172,7 @@ struct LibraryView: View {
             ForEach(groups.filter { !$0.1.isEmpty }, id: \.0) { group in
                 Section(group.0) {
                     ForEach(group.1) { e in
-                        pageRow(e, detail: Web.host(e.url) + " · " + e.time.formatted(date: e.time >= today.addingTimeInterval(-86400) ? .omitted : .abbreviated, time: .shortened)) {
+                        pageRow(e, detail: Web.host(e.url) + " · " + e.time.labeeb(date: e.time >= today.addingTimeInterval(-86400) ? .omitted : .abbreviated, time: .shortened)) {
                             Store.shared.deleteHistory(id: e.id)
                         }
                     }
@@ -238,6 +254,7 @@ struct MemoryView: View {
 
         NavigationStack {
             List {
+                Group {
                 if hits.isEmpty {
                     EmptyState(icon: question.isEmpty ? "archivebox" : "magnifyingglass", text: t(question.isEmpty ? "memory_empty" : "empty_search"))
                 } else {
@@ -259,7 +276,7 @@ struct MemoryView: View {
                                     LetterTile(name: Web.host(hit.url))
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(hit.title).font(.callout).foregroundStyle(Palette.text).lineLimit(2)
-                                        Text(Web.host(hit.url) + " · " + hit.time.formatted(date: .abbreviated, time: .omitted))
+                                        Text(Web.host(hit.url) + " · " + hit.time.labeeb(date: .abbreviated, time: .omitted))
                                             .font(.caption).foregroundStyle(Palette.muted).lineLimit(1)
                                         if !question.isEmpty {
                                             Text(MemoryView.passage(hit.body, question)).font(.caption).foregroundStyle(Palette.muted).lineLimit(3)
@@ -270,10 +287,11 @@ struct MemoryView: View {
                         }
                     }
                 }
+                }
+                .listRowBackground(Palette.panel)
             }
             .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .background(Palette.canvas)
+            .labeebList()
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: t("memory_hint"))
             .onChange(of: query) { _, _ in
                 task?.cancel()
@@ -329,6 +347,7 @@ struct SettingsView: View {
 
         NavigationStack {
             Form {
+                Group {
                 Section(t("section_general")) {
                     Picker(t("language"), selection: $settings.language) {
                         Text("العربية").tag(Lang.ar)
@@ -405,7 +424,10 @@ struct SettingsView: View {
                         LabeledContent(t("about"), value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
                     }
                 }
+                }
+                .listRowBackground(Palette.panel)
             }
+            .labeebList()
             .navigationTitle(t("settings"))
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button(t("done")) { dismiss() } } }
             .onAppear { modelText = settings.model(for: provider) }
@@ -478,6 +500,7 @@ struct PasswordsView: View {
                 } footer: { Text(t("passwords_note")) }
             }
         }
+        .labeebList()
         .navigationTitle(t("passwords"))
         .alert(revealed?.0.host ?? "", isPresented: Binding(get: { revealed != nil }, set: { if !$0 { revealed = nil } })) {
             Button(t("copy_password")) {

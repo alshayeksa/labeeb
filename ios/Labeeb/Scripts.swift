@@ -139,7 +139,7 @@ enum Scripts {
     /// Reading mode: picks the element holding the most paragraph text, then lists its headings, paragraphs,
     /// list items and quotes in order. Navigation, references and other page furniture are skipped.
     static let reader = #"""
-    (function(){
+    (function(){ try {
       function vis(e){ var s = getComputedStyle(e); return s.display !== 'none' && s.visibility !== 'hidden'; }
       function score(e){ var n = 0, ps = e.querySelectorAll('p'); for (var i = 0; i < ps.length; i++) { var l = ps[i].innerText.trim().length; if (l > 60) n += l; } return n; }
       var bad = 'nav,aside,footer,header,form,table,figcaption,[role=navigation],[role=complementary],[aria-hidden=true],.navbox,.reflist,.references,.toc,.mw-editsection,.infobox,.hatnote,.share,.social,.related,.comments,.advert';
@@ -164,6 +164,6 @@ enum Scripts {
       }
       var h = document.querySelector('h1');
       return JSON.stringify({title: (h && h.innerText.trim()) || document.title, site: location.hostname.replace(/^www\./, ''), chars: total, blocks: out});
-    })()
+    } catch (e) { return JSON.stringify({error: String(e), chars: 0, blocks: []}); } })()
     """#
 }
